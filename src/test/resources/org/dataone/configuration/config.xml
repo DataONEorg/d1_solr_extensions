@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Apache Commons Configuration -->
+<configuration>
+    <properties fileName="node.properties"/>
+    <properties fileName="ldapService.properties"/>
+    <properties fileName="registryLdap.properties"/>
+    <properties fileName="reserveIdentifier.properties"/>
+    <properties fileName="testIdentity.properties"/>
+</configuration>
