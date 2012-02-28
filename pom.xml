@@ -65,6 +65,7 @@
                                     <exclude>org.slf4j</exclude>
                                     <exclude>xml-apis</exclude>
                                     <exclude>javax.servlet</exclude>
+                                    <exclude>org.bouncycastle</exclude>
                                 </excludes>
                             </artifactSet>
 
@@ -233,7 +234,18 @@
             <type>jar</type>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk16</artifactId>
+            <version>1.46</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcmail-jdk16</artifactId>
+            <version>1.46</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
