@@ -10,6 +10,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <solr.version>3.4.0</solr.version>
+        <bouncycastle.version>1.46</bouncycastle.version>
         <d1_libclient_version>1.0.1-RC3-SNAPSHOT</d1_libclient_version>
         <d1_cn_common_version>1.0.0-RC2-SNAPSHOT</d1_cn_common_version>
         <d1_identity_manager_version>1.0.0-RC2-SNAPSHOT</d1_identity_manager_version>
@@ -237,13 +238,13 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk16</artifactId>
-            <version>1.46</version>
+            <version>${bouncycastle.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcmail-jdk16</artifactId>
-            <version>1.46</version>
+            <version>${bouncycastle.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
