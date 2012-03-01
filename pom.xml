@@ -5,16 +5,16 @@
     <groupId>org.dataone</groupId>
     <artifactId>d1_solr_extensions</artifactId>
     <packaging>jar</packaging>
-    <version>1.0.0-RC2-SNAPSHOT</version>
+    <version>1.0.0-RC3-SNAPSHOT</version>
     <name>DataONE_Solr_Extensions</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <solr.version>3.4.0</solr.version>
         <bouncycastle.version>1.46</bouncycastle.version>
-        <d1_libclient_version>1.0.1-RC3-SNAPSHOT</d1_libclient_version>
-        <d1_cn_common_version>1.0.0-RC2-SNAPSHOT</d1_cn_common_version>
-        <d1_identity_manager_version>1.0.0-RC2-SNAPSHOT</d1_identity_manager_version>
-        <d1_cn_noderegistry_version>1.0.0-RC2-SNAPSHOT</d1_cn_noderegistry_version>
+        <d1_libclient_version>1.0.1-RC4-SNAPSHOT</d1_libclient_version>
+        <d1_cn_common_version>1.0.0-RC3-SNAPSHOT</d1_cn_common_version>
+        <d1_identity_manager_version>1.0.0-RC3-SNAPSHOT</d1_identity_manager_version>
+        <d1_cn_noderegistry_version>1.0.0-RC3-SNAPSHOT</d1_cn_noderegistry_version>
         <spring.version>3.1.1.RELEASE</spring.version>
     </properties>
     <build>
