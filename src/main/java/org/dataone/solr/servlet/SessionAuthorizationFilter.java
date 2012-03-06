@@ -26,6 +26,7 @@ import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
 import org.dataone.service.cn.impl.v1.CNIdentityLDAPImpl;
 import org.dataone.service.cn.impl.v1.NodeRegistryService;
+import org.dataone.service.exceptions.InvalidToken;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotImplemented;
 import org.dataone.service.exceptions.ServiceFailure;
@@ -168,6 +169,12 @@ public class SessionAuthorizationFilter implements Filter {
             response.getOutputStream().close();
         } catch (NotImplemented ex) {
             ex.setDetail_code("1461");
+            String failure = ex.serialize(ex.FMT_XML);
+            response.getOutputStream().write(failure.getBytes());
+            response.getOutputStream().flush();
+            response.getOutputStream().close();
+        } catch (InvalidToken ex) {
+            ex.setDetail_code("1470");
             String failure = ex.serialize(ex.FMT_XML);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
