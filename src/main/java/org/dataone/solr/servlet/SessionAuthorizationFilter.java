@@ -52,13 +52,12 @@ import org.dataone.service.types.v1.SubjectInfo;
  */
 public class SessionAuthorizationFilter implements Filter {
 
-    Logger logger =  LoggerFactory.getLogger(SessionAuthorizationFilter.class);
+    Logger logger = LoggerFactory.getLogger(SessionAuthorizationFilter.class);
     static private DateFormat df = DateFormat.getDateTimeInstance();
     NodeRegistryService nodeRegistryService = new NodeRegistryService();
     CNIdentityLDAPImpl identityService = new CNIdentityLDAPImpl();
     static private List<Subject> administrativeSubjects = new ArrayList<Subject>();
     static String adminToken = Settings.getConfiguration().getString("cn.solrAdministrator.token");
-
     private long lastRefreshTimeMS = 0L;
     // refresh the nodelist from ldap every 5 minutes
     private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L;
@@ -127,23 +126,31 @@ public class SessionAuthorizationFilter implements Filter {
                 Subject authorizedSubject = session.getSubject();
                 if (administrativeSubjects.contains(authorizedSubject)) {
                     String[] isAdministrativeSubjectValue = {adminToken};
-                    proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, isAdministrativeSubjectValue );
+                    proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, isAdministrativeSubjectValue);
                 } else {
 
                     List<String> authorizedSubjects = new ArrayList<String>();
                     SubjectInfo authorizedSubjectInfo = identityService.getSubjectInfo(session, authorizedSubject);
                     if (authorizedSubjectInfo.sizeGroupList() > 0) {
                         for (Group authGroup : authorizedSubjectInfo.getGroupList()) {
-                            X500Principal principal = new X500Principal(authGroup.getSubject().getValue());
-                            String standardizedName = principal.getName(X500Principal.RFC2253);
-                            authorizedSubjects.add(standardizedName);
+                            try {
+                                X500Principal principal = new X500Principal(authGroup.getSubject().getValue());
+                                String standardizedName = principal.getName(X500Principal.RFC2253);
+                                authorizedSubjects.add(standardizedName);
+                            } catch (IllegalArgumentException ex) {
+                                logger.warn("Found improperly formatted group subject: " + authGroup.getSubject().getValue() + "\n" + ex.getMessage());
+                            }
                         }
                     }
                     if (authorizedSubjectInfo.sizePersonList() > 0) {
                         for (Person authPerson : authorizedSubjectInfo.getPersonList()) {
-                            X500Principal principal = new X500Principal(authPerson.getSubject().getValue());
-                            String standardizedName = principal.getName(X500Principal.RFC2253);
-                            authorizedSubjects.add(standardizedName);
+                            try {
+                                X500Principal principal = new X500Principal(authPerson.getSubject().getValue());
+                                String standardizedName = principal.getName(X500Principal.RFC2253);
+                                authorizedSubjects.add(standardizedName);
+                            } catch (IllegalArgumentException ex) {
+                                logger.warn("Found improperly formatted person subject: " + authPerson.getSubject().getValue() + "\n" + ex.getMessage());
+                            }
                         }
                     }
                     if (!authorizedSubjects.isEmpty()) {
