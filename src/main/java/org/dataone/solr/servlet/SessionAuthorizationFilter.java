@@ -39,6 +39,7 @@ import org.dataone.service.types.v1.Person;
 import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 import org.dataone.service.types.v1.SubjectInfo;
+import org.dataone.service.util.Constants;
 
 /**
  * Pre-filter to SolrDispatchFilter.
@@ -109,10 +110,12 @@ public class SessionAuthorizationFilter implements Filter {
             ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper((HttpServletRequest) request);
             Map proxyMap = proxyRequest.getParameterMap();
             if (proxyMap.containsKey(ParameterKeys.AUTHORIZED_SUBJECTS)) {
+                // clear out any unwanted attempts at hacking
                 logger.warn("removing attempt at supplying authorized user by client");
                 proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS, emptyValues);
             }
             if (proxyMap.containsKey(ParameterKeys.IS_CN_ADMINISTRATOR)) {
+                // clear out any unwanted attempts at hacking
                 logger.warn("removing attempt at supplying authorized administrative user by client");
                 proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, emptyValues);
             }
@@ -125,11 +128,17 @@ public class SessionAuthorizationFilter implements Filter {
                 }
                 Subject authorizedSubject = session.getSubject();
                 if (administrativeSubjects.contains(authorizedSubject)) {
+                    // set administrative access
+                    logger.info("found administrative subject");
                     String[] isAdministrativeSubjectValue = {adminToken};
                     proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, isAdministrativeSubjectValue);
                 } else {
 
                     List<String> authorizedSubjects = new ArrayList<String>();
+                    // add into the list the public subject and authenticated subject psuedo users
+                    // since they will be indexed as subjects allowable to read
+                    authorizedSubjects.add(Constants.SUBJECT_PUBLIC);
+                    authorizedSubjects.add(Constants.SUBJECT_AUTHENTICATED_USER);
                     SubjectInfo authorizedSubjectInfo = identityService.getSubjectInfo(session, authorizedSubject);
                     if (authorizedSubjectInfo.sizeGroupList() > 0) {
                         for (Group authGroup : authorizedSubjectInfo.getGroupList()) {
@@ -137,19 +146,24 @@ public class SessionAuthorizationFilter implements Filter {
                                 X500Principal principal = new X500Principal(authGroup.getSubject().getValue());
                                 String standardizedName = principal.getName(X500Principal.RFC2253);
                                 authorizedSubjects.add(standardizedName);
+                                logger.info("found administrative subject");
                             } catch (IllegalArgumentException ex) {
                                 logger.warn("Found improperly formatted group subject: " + authGroup.getSubject().getValue() + "\n" + ex.getMessage());
+                                authorizedSubjects.add(authGroup.getSubject().getValue());
                             }
                         }
                     }
                     if (authorizedSubjectInfo.sizePersonList() > 0) {
                         for (Person authPerson : authorizedSubjectInfo.getPersonList()) {
+                            if (authPerson.getVerified()) {
+                                authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
+                            }
                             try {
                                 X500Principal principal = new X500Principal(authPerson.getSubject().getValue());
                                 String standardizedName = principal.getName(X500Principal.RFC2253);
                                 authorizedSubjects.add(standardizedName);
                             } catch (IllegalArgumentException ex) {
-                                logger.warn("Found improperly formatted person subject: " + authPerson.getSubject().getValue() + "\n" + ex.getMessage());
+                                logger.error("Found improperly formatted person subject: " + authPerson.getSubject().getValue() + "\n" + ex.getMessage());
                             }
                         }
                     }
@@ -159,7 +173,8 @@ public class SessionAuthorizationFilter implements Filter {
                 }
                 fc.doFilter(proxyRequest, response);
             } else {
-
+                logger.info("session is null: default to public");
+                // providing no values to the parameters will result in public access
                 fc.doFilter(proxyRequest, response);
             }
         } catch (ServiceFailure ex) {

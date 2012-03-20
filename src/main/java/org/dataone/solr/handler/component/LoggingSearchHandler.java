@@ -5,6 +5,7 @@
 package org.dataone.solr.handler.component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
@@ -31,7 +32,6 @@ public class LoggingSearchHandler extends SearchHandler implements SolrCoreAware
     Logger logger = LoggerFactory.getLogger(LoggingSearchHandler.class);
     protected String administratorToken = Settings.getConfiguration().getString("cn.solrAdministrator.token");
     static private String publicFilterString = "isPublic:true";
-
     /**
      * Handles a query request
      *
@@ -59,37 +59,42 @@ public class LoggingSearchHandler extends SearchHandler implements SolrCoreAware
         String[] isAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
         boolean isAdmin = false;
 
+        HashMap<String,String[]> convertedSolrParams = new HashMap<String,String[]>();
 
+        convertedSolrParams.putAll(solrParams.toMultiMap(solrParams.toNamedList()));
+
+        convertedSolrParams.remove(ParameterKeys.AUTHORIZED_SUBJECTS);
+
+        for (String key: convertedSolrParams.keySet()) {
+            logger.debug(key + " " + StringUtils.join(convertedSolrParams.get(key), " "));
+        }
         // if the isAdministrator value of the solrParams is not
         // set or is of 0 length, then do not allow administrative access
-        if ( ((isAdministrator != null) && (isAdministrator.length == 0)) || (isAdministrator == null)) {
+        if ( (isAdministrator == null) || ((isAdministrator != null) && (isAdministrator.length == 0)) ) {
             // If isAdministator does not have anything filled in, then determine
             // if there is an authorized user, or just a public user
             // in either case, the user has access to all publically readable records
-            logger.debug("not an administrative user");
-            MultiMapSolrParams convertedSolrParams = new MultiMapSolrParams(solrParams.toMultiMap(solrParams.toNamedList()));
-
-            convertedSolrParams.addParam(CommonParams.FQ, publicFilterString, convertedSolrParams.getMap());
+            logger.info("not an administrative user");
 
             String[] authorizedSubjects = solrParams.getParams(ParameterKeys.AUTHORIZED_SUBJECTS);
 
-
             if ((authorizedSubjects != null) && (authorizedSubjects.length > 0) ) {
-                logger.debug("found an authorized user");
+                logger.info("found an authorized user");
                 ArrayList<String> authorizedSubjectList = new ArrayList<String>();
                 for (int i = 0; i < authorizedSubjects.length; ++i) {
                     // since subjects may have spaces in them, format the string
                     // in quotes
                     authorizedSubjectList.add("\"" + authorizedSubjects[i] + "\"");
                 }
-                String readPermissionFilterString = "readPermission: " + StringUtils.join(authorizedSubjectList, " OR ");
-                convertedSolrParams.addParam(CommonParams.FQ, readPermissionFilterString, convertedSolrParams.getMap());
+                String readPermissionFilterString = "readPermission:" + StringUtils.join(authorizedSubjectList, " OR readPermission:");
+                logger.info(readPermissionFilterString);
+                MultiMapSolrParams.addParam(CommonParams.FQ, readPermissionFilterString, convertedSolrParams);
 
             } else {
-                logger.debug("found a public user");
+                logger.info("found a public user");
+                 MultiMapSolrParams.addParam(CommonParams.FQ, publicFilterString, convertedSolrParams);
             }
 
-            req.setParams(convertedSolrParams);
         } else {
             // we need to check the value of the isAdministrator param value
             //
@@ -100,15 +105,17 @@ public class LoggingSearchHandler extends SearchHandler implements SolrCoreAware
 
             // if the administratorToken is not set in a properties file
             // then do not allow administrative access
-            logger.debug("found an administrative user");
+            
             if (((administratorToken == null) || administratorToken.equalsIgnoreCase(""))
                     || (!isAdministrator[0].equals(administratorToken))) {
-                MultiMapSolrParams convertedSolrParams = new MultiMapSolrParams(solrParams.toMultiMap(solrParams.toNamedList()));
-                convertedSolrParams.addParam(CommonParams.FQ, publicFilterString, convertedSolrParams.getMap());
-                req.setParams(convertedSolrParams);
+
+                MultiMapSolrParams.addParam(CommonParams.FQ, publicFilterString, convertedSolrParams);
+                logger.warn("an invalid administrative user got passed initial verification in SessionAuthorizationFilter");
+            } else {
+                logger.info("found an administrative user");
             }
         }
-
+         req.setParams(new MultiMapSolrParams(convertedSolrParams));
 
         super.handleRequestBody(req, rsp);
     }
