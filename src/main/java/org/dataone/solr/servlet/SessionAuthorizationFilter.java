@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
 import javax.security.auth.x500.X500Principal;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -18,8 +19,8 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.servlet.http.HttpServletResponse;
+
 import org.dataone.client.auth.CertificateManager;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
@@ -35,11 +36,12 @@ import org.dataone.service.types.v1.Node;
 import org.dataone.service.types.v1.NodeState;
 import org.dataone.service.types.v1.NodeType;
 import org.dataone.service.types.v1.Person;
-
 import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 import org.dataone.service.types.v1.SubjectInfo;
 import org.dataone.service.util.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Pre-filter to SolrDispatchFilter.
@@ -139,34 +141,47 @@ public class SessionAuthorizationFilter implements Filter {
                     // since they will be indexed as subjects allowable to read
                     authorizedSubjects.add(Constants.SUBJECT_PUBLIC);
                     authorizedSubjects.add(Constants.SUBJECT_AUTHENTICATED_USER);
-                    SubjectInfo authorizedSubjectInfo = identityService.getSubjectInfo(session, authorizedSubject);
-                    if (authorizedSubjectInfo.sizeGroupList() > 0) {
-                        for (Group authGroup : authorizedSubjectInfo.getGroupList()) {
-                            try {
-                                X500Principal principal = new X500Principal(authGroup.getSubject().getValue());
-                                String standardizedName = principal.getName(X500Principal.RFC2253);
-                                authorizedSubjects.add(standardizedName);
-                                logger.info("found administrative subject");
-                            } catch (IllegalArgumentException ex) {
-                                logger.warn("Found improperly formatted group subject: " + authGroup.getSubject().getValue() + "\n" + ex.getMessage());
-                                authorizedSubjects.add(authGroup.getSubject().getValue());
-                            }
-                        }
-                    }
-                    if (authorizedSubjectInfo.sizePersonList() > 0) {
-                        for (Person authPerson : authorizedSubjectInfo.getPersonList()) {
-                            if (authPerson.getVerified()) {
-                                authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
-                            }
-                            try {
-                                X500Principal principal = new X500Principal(authPerson.getSubject().getValue());
-                                String standardizedName = principal.getName(X500Principal.RFC2253);
-                                authorizedSubjects.add(standardizedName);
-                            } catch (IllegalArgumentException ex) {
-                                logger.error("Found improperly formatted person subject: " + authPerson.getSubject().getValue() + "\n" + ex.getMessage());
-                            }
-                        }
-                    }
+                    
+                    SubjectInfo authorizedSubjectInfo = null;
+					try {
+						authorizedSubjectInfo = identityService.getSubjectInfo(session, authorizedSubject);
+					} catch (ServiceFailure e) {
+						// if problem getting the subjectInfo, use the subjectInfo
+						// provided with the certificate.  
+						authorizedSubjectInfo = session.getSubjectInfo();
+					}
+					if (authorizedSubjectInfo == null) {
+						String standardizedName = CertificateManager.getInstance().standardizeDN(authorizedSubject.getValue());
+						authorizedSubjects.add(standardizedName);
+					} else {
+						// populate the authorizedSubjects list from the subjectInfo.
+						if (authorizedSubjectInfo.sizeGroupList() > 0) {
+							for (Group authGroup : authorizedSubjectInfo.getGroupList()) {
+								try {
+									String standardizedName = CertificateManager.getInstance().standardizeDN(authGroup.getSubject().getValue());
+									authorizedSubjects.add(standardizedName);
+									logger.info("found administrative subject");
+								} catch (IllegalArgumentException ex) {
+									logger.warn("Found improperly formatted group subject: " + authGroup.getSubject().getValue() + "\n" + ex.getMessage());
+									authorizedSubjects.add(authGroup.getSubject().getValue());
+								}
+							}
+						}
+						if (authorizedSubjectInfo.sizePersonList() > 0) {
+							for (Person authPerson : authorizedSubjectInfo.getPersonList()) {
+								if (authPerson.getVerified() != null && authPerson.getVerified()) {
+									authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
+								}
+
+								try {
+									String standardizedName = CertificateManager.getInstance().standardizeDN(authPerson.getSubject().getValue());
+									authorizedSubjects.add(standardizedName);
+								} catch (IllegalArgumentException ex) {
+									logger.error("Found improperly formatted person subject: " + authPerson.getSubject().getValue() + "\n" + ex.getMessage());
+								}
+							}
+						}
+					}
                     if (!authorizedSubjects.isEmpty()) {
                         proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS, authorizedSubjects.toArray(new String[0]));
                     }
@@ -180,24 +195,28 @@ public class SessionAuthorizationFilter implements Filter {
         } catch (ServiceFailure ex) {
             ex.setDetail_code("1490");
             String failure = ex.serialize(ex.FMT_XML);
+            ((HttpServletResponse) response).setStatus(500);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
         } catch (NotAuthorized ex) {
             ex.setDetail_code("1460");
             String failure = ex.serialize(ex.FMT_XML);
+            ((HttpServletResponse) response).setStatus(401);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
         } catch (NotImplemented ex) {
             ex.setDetail_code("1461");
             String failure = ex.serialize(ex.FMT_XML);
+            ((HttpServletResponse) response).setStatus(400);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
         } catch (InvalidToken ex) {
             ex.setDetail_code("1470");
             String failure = ex.serialize(ex.FMT_XML);
+            ((HttpServletResponse) response).setStatus(401);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
