@@ -27,10 +27,7 @@ import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
 import org.dataone.service.cn.impl.v1.CNIdentityLDAPImpl;
 import org.dataone.service.cn.impl.v1.NodeRegistryService;
-import org.dataone.service.exceptions.InvalidToken;
-import org.dataone.service.exceptions.NotAuthorized;
-import org.dataone.service.exceptions.NotImplemented;
-import org.dataone.service.exceptions.ServiceFailure;
+import org.dataone.service.exceptions.*;
 import org.dataone.service.types.v1.Group;
 import org.dataone.service.types.v1.Node;
 import org.dataone.service.types.v1.NodeState;
@@ -145,7 +142,7 @@ public class SessionAuthorizationFilter implements Filter {
                     SubjectInfo authorizedSubjectInfo = null;
 					try {
 						authorizedSubjectInfo = identityService.getSubjectInfo(session, authorizedSubject);
-					} catch (ServiceFailure e) {
+					} catch (NotFound e) {
 						// if problem getting the subjectInfo, use the subjectInfo
 						// provided with the certificate.  
 						authorizedSubjectInfo = session.getSubjectInfo();
