@@ -154,13 +154,13 @@ public class NodeLdapPopulation {
     public void populateTestCN() {
 
         Node sqrmCNNode = new Node();
-        String sqrmId = "urn:node:sqrm";
+        String sqrmId = "urn:node:sqrm1";
         NodeReference sq1dNodeReference = new NodeReference();
         sq1dNodeReference.setValue(sqrmId);
         sqrmCNNode.setIdentifier(sq1dNodeReference);
-        sqrmCNNode.setName("squirm");
+        sqrmCNNode.setName("squirm1");
         sqrmCNNode.setDescription("this is a squirm test");
-        sqrmCNNode.setBaseURL("https://my.squirm.test/cn");
+        sqrmCNNode.setBaseURL("https://my.squirm1.test/cn");
         sqrmCNNode.setReplicate(false);
         sqrmCNNode.setSynchronize(false);
         sqrmCNNode.setState(NodeState.UP);
@@ -232,7 +232,7 @@ public class NodeLdapPopulation {
 
         for (Service service : sqrmCNNode.getServices().getServiceList()) {
             String d1NodeServiceId = service.getName() + "-" + service.getVersion();
-            log.info("sqrm adding service " + d1NodeServiceId);
+            log.info("sqrm1 adding service " + d1NodeServiceId);
             DistinguishedName dnService = new DistinguishedName();
             dnService.add("dc","dataone");
             dnService.add("cn", sqrmId);
