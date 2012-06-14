@@ -1,25 +1,20 @@
 /**
- * This work was created by participants in the DataONE project, and is
- * jointly copyrighted by participating institutions in DataONE. For 
- * more information on DataONE, see our web site at http://dataone.org.
+ * This work was created by participants in the DataONE project, and is jointly copyrighted by participating
+ * institutions in DataONE. For more information on DataONE, see our web site at http://dataone.org.
  *
- *   Copyright ${year}
+ * Copyright ${year}
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
- * limitations under the License.
- * 
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
  * $Id$
  */
-
 package org.dataone.solr.servlet;
 
 import java.io.IOException;
@@ -29,7 +24,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import javax.security.auth.x500.X500Principal;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -46,25 +40,16 @@ import org.dataone.configuration.Settings;
 import org.dataone.service.cn.impl.v1.CNIdentityLDAPImpl;
 import org.dataone.service.cn.impl.v1.NodeRegistryService;
 import org.dataone.service.exceptions.*;
-import org.dataone.service.types.v1.Group;
-import org.dataone.service.types.v1.Node;
-import org.dataone.service.types.v1.NodeState;
-import org.dataone.service.types.v1.NodeType;
-import org.dataone.service.types.v1.Person;
-import org.dataone.service.types.v1.Session;
-import org.dataone.service.types.v1.Subject;
-import org.dataone.service.types.v1.SubjectInfo;
+import org.dataone.service.types.v1.*;
 import org.dataone.service.util.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Pre-filter to SolrDispatchFilter.
- * It sets authorization information in a wrapped request's parameter map
+ * Pre-filter to SolrDispatchFilter. It sets authorization information in a wrapped request's parameter map
  *
- * A DataONE SolrRequestHandler implementation can then create a filter
- * based on the parameters, since  SolrRequestHandler does not have
- * access to the request attributes where the session is stored
+ * A DataONE SolrRequestHandler implementation can then create a filter based on the parameters, since
+ * SolrRequestHandler does not have access to the request attributes where the session is stored
  *
  * @author waltz
  */
@@ -82,7 +67,7 @@ public class SessionAuthorizationFilter implements Filter {
 
     /**
      * Initialize the filter by pre-caching a list of administrative subjects
-     * 
+     *
      * @param fc
      * @throws ServletException
      * @author waltz
@@ -101,23 +86,16 @@ public class SessionAuthorizationFilter implements Filter {
     }
 
     /*
-     * If the session has a certificate, determine the authorized subjects by
-     * pulling a subjectInfo from LDAP. Set the subjects in a parameter named
-     * authorizedSubjects.
+     * If the session has a certificate, determine the authorized subjects by pulling a subjectInfo from LDAP. Set the
+     * subjects in a parameter named authorizedSubjects.
      *
      *
-     * The certificate may also be from a CN.  If so, set the isCnAdministrator param to a token.
+     * The certificate may also be from a CN. If so, set the isCnAdministrator param to a token.
      *
-     * If the request does not have either authorizedSubjects or isCnAdministrator, then it
-     * should be considered a public request
+     * If the request does not have either authorizedSubjects or isCnAdministrator, then it should be considered a
+     * public request
      *
-     * @author waltz
-     * @param request
-     * @param response
-     * @param fc
-     * @throws IOException
-     * @throws ServletException
-     * @returns void
+     * @author waltz @param request @param response @param fc @throws IOException @throws ServletException @returns void
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc) throws IOException, ServletException {
@@ -150,62 +128,49 @@ public class SessionAuthorizationFilter implements Filter {
                     String[] isAdministrativeSubjectValue = {adminToken};
                     proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, isAdministrativeSubjectValue);
                 } else {
-
-                    List<String> authorizedSubjects = new ArrayList<String>();
-                    // add into the list the public subject and authenticated subject psuedo users
-                    // since they will be indexed as subjects allowable to read
-                    authorizedSubjects.add(Constants.SUBJECT_PUBLIC);
-                    authorizedSubjects.add(Constants.SUBJECT_AUTHENTICATED_USER);
-                    
-                    SubjectInfo authorizedSubjectInfo = null;
-					try {
-						authorizedSubjectInfo = identityService.getSubjectInfo(session, authorizedSubject);
-					} catch (NotFound e) {
-						// if problem getting the subjectInfo, use the subjectInfo
-						// provided with the certificate.  
-						authorizedSubjectInfo = session.getSubjectInfo();
-					}
-					if (authorizedSubjectInfo == null) {
-						String standardizedName = CertificateManager.getInstance().standardizeDN(authorizedSubject.getValue());
-						authorizedSubjects.add(standardizedName);
-					} else {
-						// populate the authorizedSubjects list from the subjectInfo.
-						if (authorizedSubjectInfo.sizeGroupList() > 0) {
-							for (Group authGroup : authorizedSubjectInfo.getGroupList()) {
-								try {
-									String standardizedName = CertificateManager.getInstance().standardizeDN(authGroup.getSubject().getValue());
-									authorizedSubjects.add(standardizedName);
-									logger.info("found administrative subject");
-								} catch (IllegalArgumentException ex) {
-									logger.warn("Found improperly formatted group subject: " + authGroup.getSubject().getValue() + "\n" + ex.getMessage());
-									authorizedSubjects.add(authGroup.getSubject().getValue());
-								}
-							}
-						}
-						if (authorizedSubjectInfo.sizePersonList() > 0) {
-							for (Person authPerson : authorizedSubjectInfo.getPersonList()) {
-								if (authPerson.getVerified() != null && authPerson.getVerified()) {
-									authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
-								}
-
-								try {
-									String standardizedName = CertificateManager.getInstance().standardizeDN(authPerson.getSubject().getValue());
-									authorizedSubjects.add(standardizedName);
-								} catch (IllegalArgumentException ex) {
-									logger.error("Found improperly formatted person subject: " + authPerson.getSubject().getValue() + "\n" + ex.getMessage());
-								}
-							}
-						}
-					}
-                    if (!authorizedSubjects.isEmpty()) {
-                        proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS, authorizedSubjects.toArray(new String[0]));
-                    }
+                    NotAuthorized noAuth = new NotAuthorized("1460", "Logging is only available to Administrative users");
+                    throw noAuth;
+                    /*
+                     * COMMENTED OUT FOR THE TIME BEING UNTIL WE DECIPHER WHO CAN SEE WHICH FIELDS OF THE LOG RECORDS
+                     *
+                     * List<String> authorizedSubjects = new ArrayList<String>(); // add into the list the public
+                     * subject and authenticated subject psuedo users // since they will be indexed as subjects
+                     * allowable to read // authorizedSubjects.add(Constants.SUBJECT_PUBLIC);
+                     * authorizedSubjects.add(Constants.SUBJECT_AUTHENTICATED_USER);
+                     *
+                     * SubjectInfo authorizedSubjectInfo = null; try { authorizedSubjectInfo =
+                     * identityService.getSubjectInfo(session, authorizedSubject); } catch (NotFound e) { // if problem
+                     * getting the subjectInfo, use the subjectInfo // provided with the certificate.
+                     * authorizedSubjectInfo = session.getSubjectInfo(); } if (authorizedSubjectInfo == null) { String
+                     * standardizedName = CertificateManager.getInstance().standardizeDN(authorizedSubject.getValue());
+                     * authorizedSubjects.add(standardizedName); } else { // populate the authorizedSubjects list from
+                     * the subjectInfo. if (authorizedSubjectInfo.sizeGroupList() > 0) { for (Group authGroup :
+                     * authorizedSubjectInfo.getGroupList()) { try { String standardizedName =
+                     * CertificateManager.getInstance().standardizeDN(authGroup.getSubject().getValue());
+                     * authorizedSubjects.add(standardizedName); logger.info("found administrative subject"); } catch
+                     * (IllegalArgumentException ex) { logger.warn("Found improperly formatted group subject: " +
+                     * authGroup.getSubject().getValue() + "\n" + ex.getMessage());
+                     * authorizedSubjects.add(authGroup.getSubject().getValue()); } } } if
+                     * (authorizedSubjectInfo.sizePersonList() > 0) { for (Person authPerson :
+                     * authorizedSubjectInfo.getPersonList()) { if (authPerson.getVerified() != null &&
+                     * authPerson.getVerified()) { authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER); }
+                     *
+                     * try { String standardizedName =
+                     * CertificateManager.getInstance().standardizeDN(authPerson.getSubject().getValue());
+                     * authorizedSubjects.add(standardizedName); } catch (IllegalArgumentException ex) {
+                     * logger.error("Found improperly formatted person subject: " + authPerson.getSubject().getValue() +
+                     * "\n" + ex.getMessage()); } } } } if (!authorizedSubjects.isEmpty()) {
+                     * proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS, authorizedSubjects.toArray(new
+                     * String[0])); }
+                     *
+                     */
                 }
                 fc.doFilter(proxyRequest, response);
             } else {
-                logger.info("session is null: default to public");
-                // providing no values to the parameters will result in public access
-                fc.doFilter(proxyRequest, response);
+                // public is not allowed to see any 
+                logger.debug("session is null: public access is denied");
+                NotAuthorized noAuth = new NotAuthorized("1460", "Logging is only available to Administrative users");
+                throw noAuth;
             }
         } catch (ServiceFailure ex) {
             ex.setDetail_code("1490");
@@ -239,13 +204,9 @@ public class SessionAuthorizationFilter implements Filter {
     }
 
     /*
-     * refreshes an array of subjects listed as CN's in the nodelist. 
-     * the array is a static class variable
+     * refreshes an array of subjects listed as CN's in the nodelist. the array is a static class variable
      *
-     * @author waltz
-     * @throws NotImplemented
-     * @throws ServiceFailure
-     * @returns void
+     * @author waltz @throws NotImplemented @throws ServiceFailure @returns void
      */
     public void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
         administrativeSubjects.clear();
@@ -254,17 +215,32 @@ public class SessionAuthorizationFilter implements Filter {
         for (Node node : nodeList) {
             if (node.getType().equals(NodeType.CN) && node.getState().equals(NodeState.UP)) {
                 administrativeSubjects.addAll(node.getSubjectList());
+                List<Service> cnServices = node.getServices().getServiceList();
+                for (Service service : cnServices) {
+                    if (service.getName().equalsIgnoreCase("CNCore")) {
+                        if ((service.getRestrictionList() != null) && !service.getRestrictionList().isEmpty()) {
+                            List<ServiceMethodRestriction> serviceMethodRestrictionList = service.getRestrictionList();
+                            for (ServiceMethodRestriction serviceMethodRestriction : serviceMethodRestrictionList) {
+                                if (serviceMethodRestriction.getMethodName().equalsIgnoreCase("getLogRecords")) {
+                                    if (serviceMethodRestriction.getSubjectList() != null) {
+                                        administrativeSubjects.addAll(serviceMethodRestriction.getSubjectList());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
             }
         }
-
     }
 
     /**
-     * determines if it is time to refresh the AdministrativeSubjectList derived from nodelist information cache.
-     * The refresh interval helps to minimize unnecessary access to LDAP.
+     * determines if it is time to refresh the AdministrativeSubjectList derived from nodelist information cache. The
+     * refresh interval helps to minimize unnecessary access to LDAP.
      *
      * @author waltz
-     * @return boolean.  true if time to refresh
+     * @return boolean. true if time to refresh
      */
     private Boolean isTimeForRefresh() {
         Date now = new Date();
