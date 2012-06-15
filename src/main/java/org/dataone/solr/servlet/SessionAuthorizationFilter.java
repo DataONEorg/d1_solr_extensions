@@ -100,7 +100,6 @@ public class SessionAuthorizationFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc) throws IOException, ServletException {
         try {
-            logger.debug("Authorization certificate filter");
             String[] emptyValues = {};
             ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper((HttpServletRequest) request);
             Map proxyMap = proxyRequest.getParameterMap();
@@ -124,7 +123,6 @@ public class SessionAuthorizationFilter implements Filter {
                 Subject authorizedSubject = session.getSubject();
                 if (administrativeSubjects.contains(authorizedSubject)) {
                     // set administrative access
-                    logger.info("found administrative subject");
                     String[] isAdministrativeSubjectValue = {adminToken};
                     proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, isAdministrativeSubjectValue);
                 } else {
@@ -168,7 +166,6 @@ public class SessionAuthorizationFilter implements Filter {
                 fc.doFilter(proxyRequest, response);
             } else {
                 // public is not allowed to see any 
-                logger.debug("session is null: public access is denied");
                 NotAuthorized noAuth = new NotAuthorized("1460", "Logging is only available to Administrative users");
                 throw noAuth;
             }
@@ -215,17 +212,14 @@ public class SessionAuthorizationFilter implements Filter {
         for (Node node : nodeList) {
             if (node.getType().equals(NodeType.CN) && node.getState().equals(NodeState.UP)) {
                 administrativeSubjects.addAll(node.getSubjectList());
-                logger.debug("Adding cn subjects for " + node.getName());
                 List<Service> cnServices = node.getServices().getServiceList();
                 for (Service service : cnServices) {
                     if (service.getName().equalsIgnoreCase("CNCore")) {
                         if ((service.getRestrictionList() != null) && !service.getRestrictionList().isEmpty()) {
                             List<ServiceMethodRestriction> serviceMethodRestrictionList = service.getRestrictionList();
                             for (ServiceMethodRestriction serviceMethodRestriction : serviceMethodRestrictionList) {
-                                logger.debug("found ServiceMethodRestriction " + serviceMethodRestriction.getMethodName());
                                 if (serviceMethodRestriction.getMethodName().equalsIgnoreCase("getLogRecords")) {
                                     if (serviceMethodRestriction.getSubjectList() != null) {
-                                        logger.debug("Adding " + serviceMethodRestriction.sizeSubjectList()  + " subjects for ServiceMethodRestriction " + serviceMethodRestriction.getMethodName());
                                         administrativeSubjects.addAll(serviceMethodRestriction.getSubjectList());
                                     }
                                 }
