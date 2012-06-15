@@ -95,7 +95,13 @@ public class SessionAuthorizationFilter implements Filter {
      * If the request does not have either authorizedSubjects or isCnAdministrator, then it should be considered a
      * public request
      *
-     * @author waltz @param request @param response @param fc @throws IOException @throws ServletException @returns void
+     * @author waltz
+     * @param request
+     * @param response
+     * @param fc
+     * @throws IOException
+     * @throws ServletException
+     * @returns void
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc) throws IOException, ServletException {
@@ -203,7 +209,10 @@ public class SessionAuthorizationFilter implements Filter {
     /*
      * refreshes an array of subjects listed as CN's in the nodelist. the array is a static class variable
      *
-     * @author waltz @throws NotImplemented @throws ServiceFailure @returns void
+     * @author waltz
+     * @throws NotImplemented
+     * @throws ServiceFailure
+     * @returns void
      */
     public void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
         administrativeSubjects.clear();
