@@ -215,14 +215,17 @@ public class SessionAuthorizationFilter implements Filter {
         for (Node node : nodeList) {
             if (node.getType().equals(NodeType.CN) && node.getState().equals(NodeState.UP)) {
                 administrativeSubjects.addAll(node.getSubjectList());
+                logger.debug("Adding cn subjects for " + node.getName());
                 List<Service> cnServices = node.getServices().getServiceList();
                 for (Service service : cnServices) {
                     if (service.getName().equalsIgnoreCase("CNCore")) {
                         if ((service.getRestrictionList() != null) && !service.getRestrictionList().isEmpty()) {
                             List<ServiceMethodRestriction> serviceMethodRestrictionList = service.getRestrictionList();
                             for (ServiceMethodRestriction serviceMethodRestriction : serviceMethodRestrictionList) {
+                                logger.debug("found ServiceMethodRestriction " + serviceMethodRestriction.getMethodName());
                                 if (serviceMethodRestriction.getMethodName().equalsIgnoreCase("getLogRecords")) {
                                     if (serviceMethodRestriction.getSubjectList() != null) {
+                                        logger.debug("Adding " + serviceMethodRestriction.sizeSubjectList()  + " subjects for ServiceMethodRestriction " + serviceMethodRestriction.getMethodName());
                                         administrativeSubjects.addAll(serviceMethodRestriction.getSubjectList());
                                     }
                                 }
