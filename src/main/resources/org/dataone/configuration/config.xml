@@ -8,7 +8,7 @@
         <reloadingStrategy refreshDelay="5000"
             config-class="org.apache.commons.configuration.reloading.FileChangedReloadingStrategy"/>
     </properties>
-    <properties fileName="ldapService.properties"/>
+    <properties fileName="file:/etc/dataone/ldapService.properties"/>
     <properties fileName="registryLdap.properties"/>
     <properties fileName="identity.properties"/>
     <properties fileName="reserveIdentifier.properties"/>
