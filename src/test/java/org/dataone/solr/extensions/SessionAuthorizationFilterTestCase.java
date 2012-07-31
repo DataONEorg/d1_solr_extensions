@@ -48,8 +48,7 @@ import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.web.mock.MockServlet;
 import org.dataone.cn.web.mock.MockWebApplicationContextLoader;
 import org.dataone.configuration.Settings;
-import org.dataone.solr.servlet.LogServiceSessionAuthorizationFilter;
-import org.dataone.solr.servlet.SessionAuthorizationFilterStrategy;
+import org.dataone.solr.servlet.SessionAuthorizationFilter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -116,7 +115,7 @@ public class SessionAuthorizationFilterTestCase {
         MockFilterConfig fc = new MockFilterConfig(MockWebApplicationContextLoader.SERVLET_CONTEXT,
                 "ResolveFilter");
 
-        SessionAuthorizationFilterStrategy saf = new LogServiceSessionAuthorizationFilter();
+        SessionAuthorizationFilter saf = new SessionAuthorizationFilter();
         try {
             saf.init(fc);
         } catch (ServletException se) {
@@ -233,7 +232,7 @@ public class SessionAuthorizationFilterTestCase {
         MockFilterConfig fc = new MockFilterConfig(MockWebApplicationContextLoader.SERVLET_CONTEXT,
                 "SessionAuthorizationFilter");
 
-        SessionAuthorizationFilterStrategy saf = new LogServiceSessionAuthorizationFilter();
+        SessionAuthorizationFilter saf = new SessionAuthorizationFilter();
         try {
             saf.init(fc);
         } catch (ServletException se) {
