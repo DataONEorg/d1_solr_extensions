@@ -37,28 +37,36 @@ import org.dataone.client.auth.CertificateManager;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
-import org.dataone.service.cn.impl.v1.CNIdentityLDAPImpl;
 import org.dataone.service.cn.impl.v1.NodeRegistryService;
-import org.dataone.service.exceptions.*;
-import org.dataone.service.types.v1.*;
-import org.dataone.service.util.Constants;
+import org.dataone.service.exceptions.InvalidToken;
+import org.dataone.service.exceptions.NotAuthorized;
+import org.dataone.service.exceptions.NotImplemented;
+import org.dataone.service.exceptions.ServiceFailure;
+import org.dataone.service.types.v1.Node;
+import org.dataone.service.types.v1.NodeState;
+import org.dataone.service.types.v1.NodeType;
+import org.dataone.service.types.v1.Service;
+import org.dataone.service.types.v1.ServiceMethodRestriction;
+import org.dataone.service.types.v1.Session;
+import org.dataone.service.types.v1.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Pre-filter to SolrDispatchFilter. It sets authorization information in a wrapped request's parameter map
- *
- * A DataONE SolrRequestHandler implementation can then create a filter based on the parameters, since
- * SolrRequestHandler does not have access to the request attributes where the session is stored
- *
+ * Strategy for a pre-filter to SolrDispatchFilter. The strategy defines how to
+ * set authorization information in a wrapped request's parameter map
+ * 
+ * A DataONE SolrRequestHandler implementation can then create a filter based on
+ * the parameters, since SolrRequestHandler does not have access to the request
+ * attributes where the session is stored
+ * 
  * @author waltz
  */
-public class SessionAuthorizationFilter implements Filter {
+public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
-    Logger logger = LoggerFactory.getLogger(SessionAuthorizationFilter.class);
+    Logger logger = LoggerFactory.getLogger(SessionAuthorizationFilterStrategy.class);
     static private DateFormat df = DateFormat.getDateTimeInstance();
     NodeRegistryService nodeRegistryService = new NodeRegistryService();
-    CNIdentityLDAPImpl identityService = new CNIdentityLDAPImpl();
     static private List<Subject> administrativeSubjects = new ArrayList<Subject>();
     static String adminToken = Settings.getConfiguration().getString("cn.solrAdministrator.token");
     private long lastRefreshTimeMS = 0L;
@@ -66,8 +74,49 @@ public class SessionAuthorizationFilter implements Filter {
     private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L;
 
     /**
+     * Allows concrete implementations of SessionAuthorizationFilterStrategy to
+     * determine what access (if any) to allow requests that do have session
+     * information available from the dataONE CertificateManager.
+     * 
+     * @param proxyRequest
+     * @param response
+     * @param filterChain
+     * @throws ServletException
+     * @throws IOException
+     * @throws NotAuthorized
+     */
+    protected abstract void handleNoCertificateManagerSession(ProxyServletRequestWrapper proxyRequest,
+            ServletResponse response, FilterChain filterChain) throws ServletException,
+            IOException, NotAuthorized;
+
+    /**
+     * Allows concrete implementations of SessionAuthorizationFilterStrategy to
+     * determine how/what authenticated subjects are added to the request's
+     * parameter values - ParameterKeys.AUTHORIZED_SUBJECTS, as well as if
+     * public user and authenticated user constants are provided.
+     * 
+     * @param proxyRequest
+     * @param session
+     * @param authorizedSubject
+     * @throws ServiceFailure
+     * @throws NotAuthorized
+     * @throws NotImplemented
+     */
+    protected abstract void addAuthenticatedSubjectsToRequest(ProxyServletRequestWrapper proxyRequest,
+            Session session, Subject authorizedSubject) throws ServiceFailure, NotAuthorized,
+            NotImplemented;
+
+    /**
+     * The service name to look up for additional admin users defined for the
+     * services service method restrictions.
+     * 
+     * @return Name of service.
+     */
+    protected abstract String getServiceMethodName();
+
+    /**
      * Initialize the filter by pre-caching a list of administrative subjects
-     *
+     * 
      * @param fc
      * @throws ServletException
      * @author waltz
@@ -86,28 +135,41 @@ public class SessionAuthorizationFilter implements Filter {
     }
 
     /*
-     * If the session has a certificate, determine the authorized subjects by pulling a subjectInfo from LDAP. Set the
-     * subjects in a parameter named authorizedSubjects.
-     *
-     *
-     * The certificate may also be from a CN. If so, set the isCnAdministrator param to a token.
-     *
-     * If the request does not have either authorizedSubjects or isCnAdministrator, then it should be considered a
-     * public request
-     *
+     * The strategy method that defines how and what subjects are added to the
+     * request's parameter values.
+     * 
+     * If the session has a certificate, determine the authorized subjects by
+     * pulling a subjectInfo from LDAP. Set the subjects in a parameter named
+     * authorizedSubjects.
+     * 
+     * 
+     * The certificate may also be from a CN. If so, set the isCnAdministrator
+     * param to a token.
+     * 
+     * If the request does not have either authorizedSubjects or
+     * isCnAdministrator, then it should be considered a public request
+     * 
      * @author waltz
+     * 
      * @param request
+     * 
      * @param response
+     * 
      * @param fc
+     * 
      * @throws IOException
+     * 
      * @throws ServletException
+     * 
      * @returns void
      */
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc) throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc)
+            throws IOException, ServletException {
         try {
             String[] emptyValues = {};
-            ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper((HttpServletRequest) request);
+            ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper(
+                    (HttpServletRequest) request);
             Map proxyMap = proxyRequest.getParameterMap();
             if (proxyMap.containsKey(ParameterKeys.AUTHORIZED_SUBJECTS)) {
                 // clear out any unwanted attempts at hacking
@@ -120,60 +182,25 @@ public class SessionAuthorizationFilter implements Filter {
                 proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, emptyValues);
             }
             // check if we have the certificate (session) already
-            Session session = CertificateManager.getInstance().getSession((HttpServletRequest) request);
+            Session session = CertificateManager.getInstance().getSession(
+                    (HttpServletRequest) request);
             if (session != null) {
-                // we have a authenticated user, maybe an administrator or 
+                // we have a authenticated user, maybe an administrator or
                 if (isTimeForRefresh()) {
                     cacheAdministrativeSubjectList();
                 }
                 Subject authorizedSubject = session.getSubject();
                 if (administrativeSubjects.contains(authorizedSubject)) {
                     // set administrative access
-                    String[] isAdministrativeSubjectValue = {adminToken};
-                    proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, isAdministrativeSubjectValue);
+                    String[] isAdministrativeSubjectValue = { adminToken };
+                    proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
+                            isAdministrativeSubjectValue);
                 } else {
-                    NotAuthorized noAuth = new NotAuthorized("1460", "Logging is only available to Administrative users");
-                    throw noAuth;
-                    /*
-                     * COMMENTED OUT FOR THE TIME BEING UNTIL WE DECIPHER WHO CAN SEE WHICH FIELDS OF THE LOG RECORDS
-                     *
-                     * List<String> authorizedSubjects = new ArrayList<String>(); // add into the list the public
-                     * subject and authenticated subject psuedo users // since they will be indexed as subjects
-                     * allowable to read // authorizedSubjects.add(Constants.SUBJECT_PUBLIC);
-                     * authorizedSubjects.add(Constants.SUBJECT_AUTHENTICATED_USER);
-                     *
-                     * SubjectInfo authorizedSubjectInfo = null; try { authorizedSubjectInfo =
-                     * identityService.getSubjectInfo(session, authorizedSubject); } catch (NotFound e) { // if problem
-                     * getting the subjectInfo, use the subjectInfo // provided with the certificate.
-                     * authorizedSubjectInfo = session.getSubjectInfo(); } if (authorizedSubjectInfo == null) { String
-                     * standardizedName = CertificateManager.getInstance().standardizeDN(authorizedSubject.getValue());
-                     * authorizedSubjects.add(standardizedName); } else { // populate the authorizedSubjects list from
-                     * the subjectInfo. if (authorizedSubjectInfo.sizeGroupList() > 0) { for (Group authGroup :
-                     * authorizedSubjectInfo.getGroupList()) { try { String standardizedName =
-                     * CertificateManager.getInstance().standardizeDN(authGroup.getSubject().getValue());
-                     * authorizedSubjects.add(standardizedName); logger.info("found administrative subject"); } catch
-                     * (IllegalArgumentException ex) { logger.warn("Found improperly formatted group subject: " +
-                     * authGroup.getSubject().getValue() + "\n" + ex.getMessage());
-                     * authorizedSubjects.add(authGroup.getSubject().getValue()); } } } if
-                     * (authorizedSubjectInfo.sizePersonList() > 0) { for (Person authPerson :
-                     * authorizedSubjectInfo.getPersonList()) { if (authPerson.getVerified() != null &&
-                     * authPerson.getVerified()) { authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER); }
-                     *
-                     * try { String standardizedName =
-                     * CertificateManager.getInstance().standardizeDN(authPerson.getSubject().getValue());
-                     * authorizedSubjects.add(standardizedName); } catch (IllegalArgumentException ex) {
-                     * logger.error("Found improperly formatted person subject: " + authPerson.getSubject().getValue() +
-                     * "\n" + ex.getMessage()); } } } } if (!authorizedSubjects.isEmpty()) {
-                     * proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS, authorizedSubjects.toArray(new
-                     * String[0])); }
-                     *
-                     */
+                    addAuthenticatedSubjectsToRequest(proxyRequest, session, authorizedSubject);
                 }
                 fc.doFilter(proxyRequest, response);
             } else {
-                // public is not allowed to see any 
-                NotAuthorized noAuth = new NotAuthorized("1460", "Logging is only available to Administrative users");
-                throw noAuth;
+                handleNoCertificateManagerSession(proxyRequest, response, fc);
             }
         } catch (ServiceFailure ex) {
             ex.setDetail_code("1490");
@@ -207,14 +234,18 @@ public class SessionAuthorizationFilter implements Filter {
     }
 
     /*
-     * refreshes an array of subjects listed as CN's in the nodelist. the array is a static class variable
-     *
+     * refreshes an array of subjects listed as CN's in the nodelist. the array
+     * is a static class variable
+     * 
      * @author waltz
+     * 
      * @throws NotImplemented
+     * 
      * @throws ServiceFailure
+     * 
      * @returns void
      */
-    public void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
+    private void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
         administrativeSubjects.clear();
 
         List<Node> nodeList = nodeRegistryService.listNodes().getNodeList();
@@ -224,12 +255,16 @@ public class SessionAuthorizationFilter implements Filter {
                 List<Service> cnServices = node.getServices().getServiceList();
                 for (Service service : cnServices) {
                     if (service.getName().equalsIgnoreCase("CNCore")) {
-                        if ((service.getRestrictionList() != null) && !service.getRestrictionList().isEmpty()) {
-                            List<ServiceMethodRestriction> serviceMethodRestrictionList = service.getRestrictionList();
+                        if ((service.getRestrictionList() != null)
+                                && !service.getRestrictionList().isEmpty()) {
+                            List<ServiceMethodRestriction> serviceMethodRestrictionList = service
+                                    .getRestrictionList();
                             for (ServiceMethodRestriction serviceMethodRestriction : serviceMethodRestrictionList) {
-                                if (serviceMethodRestriction.getMethodName().equalsIgnoreCase("getLogRecords")) {
+                                if (serviceMethodRestriction.getMethodName().equalsIgnoreCase(
+                                        getServiceMethodName())) {
                                     if (serviceMethodRestriction.getSubjectList() != null) {
-                                        administrativeSubjects.addAll(serviceMethodRestriction.getSubjectList());
+                                        administrativeSubjects.addAll(serviceMethodRestriction
+                                                .getSubjectList());
                                     }
                                 }
                             }
@@ -242,9 +277,10 @@ public class SessionAuthorizationFilter implements Filter {
     }
 
     /**
-     * determines if it is time to refresh the AdministrativeSubjectList derived from nodelist information cache. The
-     * refresh interval helps to minimize unnecessary access to LDAP.
-     *
+     * determines if it is time to refresh the AdministrativeSubjectList derived
+     * from nodelist information cache. The refresh interval helps to minimize
+     * unnecessary access to LDAP.
+     * 
      * @author waltz
      * @return boolean. true if time to refresh
      */
