@@ -53,7 +53,17 @@ import org.dataone.service.types.v1.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LogServiceSessionAuthorizationFilter implements Filter {
+/**
+ * Pre-filter to SolrDispatchFilter. It sets authorization information in a
+ * wrapped request's parameter map
+ * 
+ * A DataONE SolrRequestHandler implementation can then create a filter based on
+ * the parameters, since SolrRequestHandler does not have access to the request
+ * attributes where the session is stored
+ * 
+ * @author waltz
+ */
+public class SessionAuthorizationFilter implements Filter {
 
     Logger logger = LoggerFactory.getLogger(SessionAuthorizationFilter.class);
     static private DateFormat df = DateFormat.getDateTimeInstance();
@@ -315,5 +325,4 @@ public class LogServiceSessionAuthorizationFilter implements Filter {
     public void destroy() {
         logger.info("destroy SessionAuthorizationFilter");
     }
-
 }

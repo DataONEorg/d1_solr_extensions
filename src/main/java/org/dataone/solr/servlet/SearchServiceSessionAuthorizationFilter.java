@@ -2,6 +2,7 @@ package org.dataone.solr.servlet;
 
 import java.io.IOException;
 
+import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletResponse;
@@ -13,7 +14,8 @@ import org.dataone.service.exceptions.ServiceFailure;
 import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 
-public class SearchServiceSessionAuthorizationFilter extends SessionAuthorizationFilterStrategy {
+public class SearchServiceSessionAuthorizationFilter extends SessionAuthorizationFilterStrategy
+        implements Filter {
 
     protected void handleNoCertificateManagerSession(ProxyServletRequestWrapper proxyRequest,
             ServletResponse response, FilterChain fc) throws ServletException, IOException,
