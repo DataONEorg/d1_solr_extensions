@@ -85,9 +85,9 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * @throws IOException
      * @throws NotAuthorized
      */
-    protected abstract void handleNoCertificateManagerSession(ProxyServletRequestWrapper proxyRequest,
-            ServletResponse response, FilterChain filterChain) throws ServletException,
-            IOException, NotAuthorized;
+    protected abstract void handleNoCertificateManagerSession(
+            ProxyServletRequestWrapper proxyRequest, ServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException, NotAuthorized;
 
     /**
      * Allows concrete implementations of SessionAuthorizationFilterStrategy to
@@ -102,9 +102,9 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * @throws NotAuthorized
      * @throws NotImplemented
      */
-    protected abstract void addAuthenticatedSubjectsToRequest(ProxyServletRequestWrapper proxyRequest,
-            Session session, Subject authorizedSubject) throws ServiceFailure, NotAuthorized,
-            NotImplemented;
+    protected abstract void addAuthenticatedSubjectsToRequest(
+            ProxyServletRequestWrapper proxyRequest, Session session, Subject authorizedSubject)
+            throws ServiceFailure, NotAuthorized, NotImplemented;
 
     /**
      * The service name to look up for additional admin users defined for the
@@ -123,7 +123,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      */
     @Override
     public void init(FilterConfig fc) throws ServletException {
-        logger.info("init SessionAuthorizationFilter");
+        logger.info("init SessionAuthorizationFilter: " + this.getClass().getName());
         try {
             cacheAdministrativeSubjectList();
         } catch (NotImplemented ex) {
@@ -166,6 +166,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc)
             throws IOException, ServletException {
+        logger.info("******SessionAuthorizationFilterStrategy doFilter invoked.");
         try {
             String[] emptyValues = {};
             ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper(
