@@ -37,7 +37,6 @@ import org.dataone.client.auth.CertificateManager;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
-import org.dataone.service.cn.impl.v1.CNIdentityLDAPImpl;
 import org.dataone.service.cn.impl.v1.NodeRegistryService;
 import org.dataone.service.exceptions.InvalidToken;
 import org.dataone.service.exceptions.NotAuthorized;
@@ -68,7 +67,7 @@ public class SessionAuthorizationFilter implements Filter {
     Logger logger = LoggerFactory.getLogger(SessionAuthorizationFilter.class);
     static private DateFormat df = DateFormat.getDateTimeInstance();
     NodeRegistryService nodeRegistryService = new NodeRegistryService();
-    CNIdentityLDAPImpl identityService = new CNIdentityLDAPImpl();
+    // CNIdentityLDAPImpl identityService = new CNIdentityLDAPImpl();
     static private List<Subject> administrativeSubjects = new ArrayList<Subject>();
     static String adminToken = Settings.getConfiguration().getString("cn.solrAdministrator.token");
     private long lastRefreshTimeMS = 0L;
@@ -84,7 +83,6 @@ public class SessionAuthorizationFilter implements Filter {
      */
     @Override
     public void init(FilterConfig fc) throws ServletException {
-        logger.info("init SessionAuthorizationFilter");
         try {
             cacheAdministrativeSubjectList();
         } catch (NotImplemented ex) {
@@ -93,6 +91,7 @@ public class SessionAuthorizationFilter implements Filter {
             logger.error(ex.serialize(ex.FMT_XML));
         }
         lastRefreshTimeMS = new Date().getTime();
+        logger.info("init SessionAuthorizationFilter complete.");
     }
 
     /*
@@ -267,7 +266,7 @@ public class SessionAuthorizationFilter implements Filter {
      * 
      * @returns void
      */
-    public void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
+    private void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
         administrativeSubjects.clear();
 
         List<Node> nodeList = nodeRegistryService.listNodes().getNodeList();

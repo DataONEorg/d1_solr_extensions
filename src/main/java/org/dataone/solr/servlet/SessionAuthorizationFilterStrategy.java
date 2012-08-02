@@ -38,6 +38,7 @@ import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
 import org.dataone.service.cn.impl.v1.NodeRegistryService;
+import org.dataone.service.exceptions.BaseException;
 import org.dataone.service.exceptions.InvalidToken;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotImplemented;
@@ -65,18 +66,22 @@ import org.slf4j.LoggerFactory;
 public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
     Logger logger = LoggerFactory.getLogger(SessionAuthorizationFilterStrategy.class);
-    static private DateFormat df = DateFormat.getDateTimeInstance();
-    NodeRegistryService nodeRegistryService = new NodeRegistryService();
-    static private List<Subject> administrativeSubjects = new ArrayList<Subject>();
-    static String adminToken = Settings.getConfiguration().getString("cn.solrAdministrator.token");
+
+    private static DateFormat df = DateFormat.getDateTimeInstance();
+    private static NodeRegistryService nodeRegistryService = new NodeRegistryService();
+    private static String adminToken = Settings.getConfiguration().getString(
+            "cn.solrAdministrator.token");
+
+    private List<Subject> administrativeSubjects = new ArrayList<Subject>();
     private long lastRefreshTimeMS = 0L;
-    // refresh the nodelist from ldap every 5 minutes
-    private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L;
+    private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L; // 5 minutes
 
     /**
      * Allows concrete implementations of SessionAuthorizationFilterStrategy to
      * determine what access (if any) to allow requests that do have session
      * information available from the dataONE CertificateManager.
+     * 
+     * Called from doFilter
      * 
      * @param proxyRequest
      * @param response
@@ -94,6 +99,8 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * determine how/what authenticated subjects are added to the request's
      * parameter values - ParameterKeys.AUTHORIZED_SUBJECTS, as well as if
      * public user and authenticated user constants are provided.
+     * 
+     * Called from doFilter
      * 
      * @param proxyRequest
      * @param session
@@ -123,15 +130,16 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      */
     @Override
     public void init(FilterConfig fc) throws ServletException {
-        logger.info("init SessionAuthorizationFilter: " + this.getClass().getName());
         try {
+            logger.info("about to cache admin");
             cacheAdministrativeSubjectList();
         } catch (NotImplemented ex) {
-            logger.error(ex.serialize(ex.FMT_XML));
+            logger.error(ex.serialize(BaseException.FMT_XML));
         } catch (ServiceFailure ex) {
-            logger.error(ex.serialize(ex.FMT_XML));
+            logger.error(ex.serialize(BaseException.FMT_XML));
         }
         lastRefreshTimeMS = new Date().getTime();
+        logger.info("init SessionAuthorizationFilter: " + this.getClass().getName());
     }
 
     /*
@@ -166,7 +174,8 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc)
             throws IOException, ServletException {
-        logger.info("******SessionAuthorizationFilterStrategy doFilter invoked.");
+        logger.info("******SessionAuthorizationFilterStrategy doFilter invoked by: "
+                + this.getClass().getName());
         try {
             String[] emptyValues = {};
             ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper(
@@ -205,28 +214,28 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             }
         } catch (ServiceFailure ex) {
             ex.setDetail_code("1490");
-            String failure = ex.serialize(ex.FMT_XML);
+            String failure = ex.serialize(BaseException.FMT_XML);
             ((HttpServletResponse) response).setStatus(500);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
         } catch (NotAuthorized ex) {
             ex.setDetail_code("1460");
-            String failure = ex.serialize(ex.FMT_XML);
+            String failure = ex.serialize(BaseException.FMT_XML);
             ((HttpServletResponse) response).setStatus(401);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
         } catch (NotImplemented ex) {
             ex.setDetail_code("1461");
-            String failure = ex.serialize(ex.FMT_XML);
+            String failure = ex.serialize(BaseException.FMT_XML);
             ((HttpServletResponse) response).setStatus(400);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
         } catch (InvalidToken ex) {
             ex.setDetail_code("1470");
-            String failure = ex.serialize(ex.FMT_XML);
+            String failure = ex.serialize(BaseException.FMT_XML);
             ((HttpServletResponse) response).setStatus(401);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
