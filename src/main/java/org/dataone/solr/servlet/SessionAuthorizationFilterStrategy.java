@@ -18,7 +18,6 @@
 package org.dataone.solr.servlet;
 
 import java.io.IOException;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -67,7 +66,6 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
     Logger logger = LoggerFactory.getLogger(SessionAuthorizationFilterStrategy.class);
 
-    private static DateFormat df = DateFormat.getDateTimeInstance();
     private static NodeRegistryService nodeRegistryService = new NodeRegistryService();
     private static String adminToken = Settings.getConfiguration().getString(
             "cn.solrAdministrator.token");
@@ -142,7 +140,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         logger.info("init SessionAuthorizationFilter: " + this.getClass().getName());
     }
 
-    /*
+    /**
      * The strategy method that defines how and what subjects are added to the
      * request's parameter values.
      * 
@@ -158,23 +156,17 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * isCnAdministrator, then it should be considered a public request
      * 
      * @author waltz
-     * 
      * @param request
-     * 
      * @param response
-     * 
      * @param fc
-     * 
      * @throws IOException
-     * 
      * @throws ServletException
-     * 
      * @returns void
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc)
             throws IOException, ServletException {
-        logger.info("******SessionAuthorizationFilterStrategy doFilter invoked by: "
+        logger.debug("SessionAuthorizationFilterStrategy doFilter invoked by: "
                 + this.getClass().getName());
         try {
             String[] emptyValues = {};
@@ -295,14 +287,10 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * @return boolean. true if time to refresh
      */
     private Boolean isTimeForRefresh() {
-        Date now = new Date();
-        long nowMS = now.getTime();
-
-        // convert seconds to milliseconds
-
+        long nowMS = System.currentTimeMillis();
         if ((nowMS - this.lastRefreshTimeMS) > nodelistRefreshIntervalSeconds) {
             this.lastRefreshTimeMS = nowMS;
-            logger.info("nodelist refresh: new cached time: " + df.format(now));
+            logger.info("nodelist refreshed");
             return true;
         } else {
             return false;

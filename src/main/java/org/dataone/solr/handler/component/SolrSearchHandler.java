@@ -65,6 +65,9 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
         applySecurityQueryFilterSolrParameters(solrParams, convertedSolrParams);
 
         request.setParams(new MultiMapSolrParams(convertedSolrParams));
+
+        logSolrParameters(convertedSolrParams);
+
         super.handleRequestBody(request, response);
     }
 
@@ -74,10 +77,10 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
         String[] isAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
         convertedSolrParams.remove(ParameterKeys.AUTHORIZED_SUBJECTS);
         if (notAdministrator(isAdministrator)) {
-            logger.info("not an administrative user");
+            logger.debug("not an administrative user");
             String[] authorizedSubjects = solrParams.getParams(ParameterKeys.AUTHORIZED_SUBJECTS);
             if ((authorizedSubjects != null) && (authorizedSubjects.length > 0)) {
-                logger.info("found an authorized user");
+                logger.debug("found an authorized user");
                 ArrayList<String> authorizedSubjectList = new ArrayList<String>();
                 for (int i = 0; i < authorizedSubjects.length; i++) {
                     // since subjects may have spaces in them, format the string
@@ -90,13 +93,13 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
                 MultiMapSolrParams.addParam(CommonParams.FQ, readPermissionFilterString,
                         convertedSolrParams);
             } else {
-                logger.info("found a public user");
+                logger.debug("found a public user");
                 MultiMapSolrParams.addParam(CommonParams.FQ, publicFilterString,
                         convertedSolrParams);
             }
         } else {
             if (isAdministrator(isAdministrator)) {
-                logger.info("found an administrative user");
+                logger.debug("found an administrative user");
             } else {
                 MultiMapSolrParams.addParam(CommonParams.FQ, publicFilterString,
                         convertedSolrParams);
@@ -138,8 +141,10 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
     }
 
     private void logSolrParameters(HashMap<String, String[]> convertedSolrParams) {
-        for (String key : convertedSolrParams.keySet()) {
-            logger.debug(key + " " + StringUtils.join(convertedSolrParams.get(key), " "));
+        if (logger.isDebugEnabled()) {
+            for (String key : convertedSolrParams.keySet()) {
+                logger.info(key + " " + StringUtils.join(convertedSolrParams.get(key), " "));
+            }
         }
     }
 }

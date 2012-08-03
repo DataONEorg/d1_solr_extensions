@@ -61,7 +61,7 @@ public class SessionAuthorizationUtil {
             ServletResponse response, FilterChain fc) throws ServletException, IOException,
             NotAuthorized {
         // providing no values to the parameters will result in public access
-        logger.info("session is null: default to public");
+        logger.debug("session is null: default to public");
         fc.doFilter(proxyRequest, response);
     }
 
