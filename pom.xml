@@ -111,7 +111,6 @@
                                     <exclude>commons-codec</exclude>
                                     <exclude>commons-io</exclude>
                                     <exclude>commons-fileupload</exclude>
-                                    <exclude>org.apache.httpcomponents:httpclient</exclude>
                                     <exclude>org.slf4j</exclude>
                                     <exclude>xml-apis</exclude>
                                     <exclude>javax.servlet</exclude>
