@@ -20,12 +20,15 @@ package org.dataone.solr.handler.component;
 import java.util.HashMap;
 
 import org.apache.lucene.queryParser.ParseException;
+import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.util.plugin.SolrCoreAware;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Custom Solr SearchHandler to provide DataONE security filtering behavior.
@@ -37,6 +40,7 @@ import org.apache.solr.util.plugin.SolrCoreAware;
 public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
 
     private static final String READ_PERMISSION_FIELD = "readPermission";
+    private static Logger logger = LoggerFactory.getLogger(SolrSearchHandler.class);
 
     @Override
     public void handleRequestBody(SolrQueryRequest request, SolrQueryResponse response)
@@ -47,6 +51,8 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
         SolrParams solrParams = request.getParams();
         HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
                 .getConvertedParameters(solrParams);
+
+        convertedSolrParams.remove("d1-pc");
 
         disableMLTResults(convertedSolrParams);
 
@@ -59,6 +65,9 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
 
         SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
 
+        logger.debug("Solr Search Handler query: " + request.getParams().get(CommonParams.Q));
+        logger.debug("Solr Search Handler query filter: "
+                + request.getParams().get(CommonParams.FQ));
         super.handleRequestBody(request, response);
     }
 

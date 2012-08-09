@@ -192,6 +192,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                     cacheAdministrativeSubjectList();
                 }
                 Subject authorizedSubject = session.getSubject();
+                logger.debug("Solr Session Auth found subject: " + authorizedSubject.getValue());
                 if (administrativeSubjects.contains(authorizedSubject)) {
                     // set administrative access
                     String[] isAdministrativeSubjectValue = { adminToken };
@@ -202,6 +203,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 }
                 fc.doFilter(proxyRequest, response);
             } else {
+                logger.debug("Solr Session auth - NO SESSION");
                 handleNoCertificateManagerSession(proxyRequest, response, fc);
             }
         } catch (ServiceFailure ex) {
