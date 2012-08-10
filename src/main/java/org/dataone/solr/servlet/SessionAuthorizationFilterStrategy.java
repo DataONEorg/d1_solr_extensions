@@ -32,10 +32,10 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.dataone.client.auth.CertificateManager;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
+import org.dataone.portal.PortalCertificateManager;
 import org.dataone.service.cn.impl.v1.NodeRegistryService;
 import org.dataone.service.exceptions.BaseException;
 import org.dataone.service.exceptions.InvalidToken;
@@ -184,8 +184,8 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, emptyValues);
             }
             // check if we have the certificate (session) already
-            Session session = CertificateManager.getInstance().getSession(
-                    (HttpServletRequest) request);
+            Session session = PortalCertificateManager.getInstance()
+                    .registerPortalCertificateAndPlaceOnRequest((HttpServletRequest) request);
             if (session != null) {
                 // we have a authenticated user, maybe an administrator or
                 if (isTimeForRefresh()) {
