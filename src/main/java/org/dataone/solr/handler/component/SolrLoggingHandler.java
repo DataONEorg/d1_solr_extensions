@@ -17,14 +17,21 @@
  */
 package org.dataone.solr.handler.component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import org.apache.commons.lang3.StringUtils;
 
 import org.apache.lucene.queryParser.ParseException;
+import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.util.plugin.SolrCoreAware;
+import org.dataone.cn.servlet.http.ParameterKeys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Extends the Solr SearchHandler to add in filters based on whether or not a
@@ -33,10 +40,10 @@ import org.apache.solr.util.plugin.SolrCoreAware;
  * 
  * @author waltz
  */
-public class LoggingSearchHandler extends SearchHandler implements SolrCoreAware {
+public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
 
     private static final String READ_PERMISSION_FIELD = "readPermission";
-
+    private static Logger logger = LoggerFactory.getLogger(SolrLoggingHandler.class);
     /**
      * Handles a query request
      * 
@@ -70,11 +77,24 @@ public class LoggingSearchHandler extends SearchHandler implements SolrCoreAware
 
         SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(solrParams,
                 convertedSolrParams, READ_PERMISSION_FIELD);
-
+        String[] isMNAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
+        String[] isCNAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
+        if (SolrSearchHandlerUtil.isAdministrator(isMNAdministrator) && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
+            applyMNAdministratorRestriction(solrParams, convertedSolrParams, isMNAdministrator[0]);
+        }
         SolrSearchHandlerUtil.setNewSolrParameters(req, convertedSolrParams);
 
         SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
 
         super.handleRequestBody(req, rsp);
     }
+    
+    private void applyMNAdministratorRestriction(SolrParams solrParams,
+            HashMap<String, String[]> convertedSolrParams, String memberNodeId) {
+                        logger.debug("found an Membernode user");
+                String mnFilterString = "nodeId:"+SolrSearchHandlerUtil.escapeQueryChars(memberNodeId);
+                MultiMapSolrParams.addParam(CommonParams.FQ, mnFilterString,
+                        convertedSolrParams);
+    }
+    
 }

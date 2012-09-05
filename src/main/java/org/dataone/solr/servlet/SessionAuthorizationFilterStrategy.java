@@ -18,10 +18,7 @@
 package org.dataone.solr.servlet;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -70,7 +67,10 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     private static String adminToken = Settings.getConfiguration().getString(
             "cn.solrAdministrator.token");
 
-    private List<Subject> administrativeSubjects = new ArrayList<Subject>();
+    private List<Subject> cnAdministrativeSubjects = new ArrayList<Subject>();
+    private List<Subject> mnAdministrativeSubjects = new ArrayList<Subject>();
+    private List<Subject> serviceMethodRestrictionSubjects = new ArrayList<Subject>();
+    private Map<String, List<Subject>> mnNodeNameToSubjectsMap = new HashMap<String, List<Subject>>();
     private long lastRefreshTimeMS = 0L;
     private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L; // 5 minutes
 
@@ -183,6 +183,11 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 logger.warn("removing attempt at supplying authorized administrative user by client");
                 proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, emptyValues);
             }
+            if (proxyMap.containsKey(ParameterKeys.IS_MN_ADMINISTRATOR)) {
+                // clear out any unwanted attempts at hacking
+                logger.warn("removing attempt at supplying authorized administrative user by client");
+                proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR, emptyValues);
+            }
             // check if we have the certificate (session) already
             Session session = PortalCertificateManager.getInstance()
                     .registerPortalCertificateAndPlaceOnRequest((HttpServletRequest) request);
@@ -193,13 +198,43 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 }
                 Subject authorizedSubject = session.getSubject();
                 logger.debug("Solr Session Auth found subject: " + authorizedSubject.getValue());
-                if (administrativeSubjects.contains(authorizedSubject)) {
+                
+                // The subject may be a CN or a CN administrator, in which  case 
+                // authorization is granted for full access to records
+                // The subject may be a MN, in which case, depending on the service,
+                // the records may be filtered in some way...
+                //
+                // For some unknown reason, the endpoint may allow access to certain subjects
+                // in which case, access is restricted to only those subjects on the list
+                //
+                // Lastly, the subject may be a valid authorized subject, so 
+                // restrict based on the user permissions
+                
+                if (cnAdministrativeSubjects.contains(authorizedSubject)) {
                     // set administrative access
                     String[] isAdministrativeSubjectValue = { adminToken };
                     proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
                             isAdministrativeSubjectValue);
+                } else if (mnAdministrativeSubjects.contains(authorizedSubject)) {
+                    for (String mnIdentifier : mnNodeNameToSubjectsMap.keySet()) {
+                        List<Subject> mnSubjectList = mnNodeNameToSubjectsMap.get(mnIdentifier);
+                        if (mnSubjectList != null && mnSubjectList.contains(authorizedSubject)) {
+                            String[] mnAdministratorParamValue = {mnIdentifier};
+                            proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR,
+                            mnAdministratorParamValue);
+                        }
+                    }
                 } else {
-                    addAuthenticatedSubjectsToRequest(proxyRequest, session, authorizedSubject);
+                    if (!serviceMethodRestrictionSubjects.isEmpty()) {
+                        if (serviceMethodRestrictionSubjects.contains(authorizedSubject)) {
+                            addAuthenticatedSubjectsToRequest(proxyRequest, session, authorizedSubject);
+                        } else {
+                           logger.debug("Solr Session auth - "  + authorizedSubject.getValue() + " not found in restricted list");
+                            handleNoCertificateManagerSession(proxyRequest, response, fc);
+                        }
+                    } else {
+                        addAuthenticatedSubjectsToRequest(proxyRequest, session, authorizedSubject);
+                    }
                 }
                 fc.doFilter(proxyRequest, response);
             } else {
@@ -250,12 +285,22 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * @returns void
      */
     private void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
-        administrativeSubjects.clear();
-
+        cnAdministrativeSubjects.clear();
+        mnAdministrativeSubjects.clear();
+        serviceMethodRestrictionSubjects.clear();
+        List<String> nodeAdministrators = Settings.getConfiguration().getList("cn.administrators");
+        if (nodeAdministrators != null) {
+            for (String administrator : nodeAdministrators) {
+                logger.debug("AdminList entry " + administrator);
+                Subject adminSubject = new Subject();
+                adminSubject.setValue(administrator);
+                cnAdministrativeSubjects.add(adminSubject);
+            }
+        }
         List<Node> nodeList = nodeRegistryService.listNodes().getNodeList();
         for (Node node : nodeList) {
             if (node.getType().equals(NodeType.CN) && node.getState().equals(NodeState.UP)) {
-                administrativeSubjects.addAll(node.getSubjectList());
+                cnAdministrativeSubjects.addAll(node.getSubjectList());
                 List<Service> cnServices = node.getServices().getServiceList();
                 for (Service service : cnServices) {
                     if (service.getName().equalsIgnoreCase("CNCore")) {
@@ -267,7 +312,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                                 if (serviceMethodRestriction.getMethodName().equalsIgnoreCase(
                                         getServiceMethodName())) {
                                     if (serviceMethodRestriction.getSubjectList() != null) {
-                                        administrativeSubjects.addAll(serviceMethodRestriction
+                                        serviceMethodRestrictionSubjects.addAll(serviceMethodRestriction
                                                 .getSubjectList());
                                     }
                                 }
@@ -275,8 +320,13 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                         }
                     }
                 }
-
             }
+          if (node.getType().equals(NodeType.MN) && node.getState().equals(NodeState.UP)) {
+              if (node.getSubjectList() != null && !(node.getSubjectList().isEmpty())) {
+              mnAdministrativeSubjects.addAll(node.getSubjectList());
+              mnNodeNameToSubjectsMap.put(node.getIdentifier().getValue(), node.getSubjectList());
+              }
+          }
         }
     }
 

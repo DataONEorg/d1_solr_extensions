@@ -81,6 +81,10 @@ public class SessionAuthorizationUtil {
         } catch (NotFound e) {
             // if problem getting the subjectInfo, use the
             // subjectInfo provided with the certificate.
+            
+            // XXX if the subject has had all rights revoked or for some reason removed
+            // from the system, then this call will allow information provided in the
+            // certificate to override changes to the system
             authorizedSubjectInfo = session.getSubjectInfo();
         }
         if (authorizedSubjectInfo == null) {

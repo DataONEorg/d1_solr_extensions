@@ -48,13 +48,17 @@ public class SolrSearchHandlerUtil {
 
     private static Logger logger = LoggerFactory.getLogger(SolrSearchHandlerUtil.class);
     private static String publicFilterString = "isPublic:true";
-    private static String administratorToken = Settings.getConfiguration().getString(
+    private static String cnAdministratorToken = Settings.getConfiguration().getString(
             "cn.solrAdministrator.token");
 
     public static void applyReadRestrictionQueryFilterParameters(SolrParams solrParams,
             HashMap<String, String[]> convertedSolrParams, String readField) {
 
         String[] isAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
+        if ((isAdministrator == null) || (isAdministrator.length == 0)) {
+            // might be a membernode, and depending on the implemenation this may have consequences
+            isAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
+        }
         convertedSolrParams.remove(ParameterKeys.AUTHORIZED_SUBJECTS);
         if (notAdministrator(isAdministrator)) {
             logger.debug("not an administrative user");
@@ -65,7 +69,7 @@ public class SolrSearchHandlerUtil {
                 for (int i = 0; i < authorizedSubjects.length; i++) {
                     // since subjects may have spaces in them, format the string
                     // in quotes
-                    authorizedSubjectList.add("\"" + authorizedSubjects[i] + "\"");
+                    authorizedSubjectList.add("\"" + escapeQueryChars(authorizedSubjects[i]) + "\"");
                 }
                 String readPermissionFilterString = readField + ":"
                         + StringUtils.join(authorizedSubjectList, " OR " + readField + ":");
@@ -88,8 +92,7 @@ public class SolrSearchHandlerUtil {
             }
         }
     }
-
-    private static boolean isAdministrator(String[] isAdministrator) {
+    public static boolean isAdministrator(String[] isAdministrator) {
         // we need to check the value of the isAdministrator param value
         //
         // the isAdministrator param value should be set by a property
@@ -97,9 +100,21 @@ public class SolrSearchHandlerUtil {
         // a request HTTP QUERY does not attempt to gain administrative
         // access by spoofing the parameter
 
-        // if the administratorToken is not set in a properties file
+        // if the cnAdministratorToken is not set in a properties file
         // then do not allow administrative access
-        return (isAdministrator != null && StringUtils.isNotEmpty(administratorToken) && administratorToken
+        return (isAdministrator != null && StringUtils.isNotEmpty(cnAdministratorToken));
+    }
+    public static boolean isCNAdministrator(String[] isAdministrator) {
+        // we need to check the value of the isAdministrator param value
+        //
+        // the isAdministrator param value should be set by a property
+        // not readable by the public, in order to ensure that
+        // a request HTTP QUERY does not attempt to gain administrative
+        // access by spoofing the parameter
+
+        // if the cnAdministratorToken is not set in a properties file
+        // then do not allow administrative access
+        return (isAdministrator != null && StringUtils.isNotEmpty(cnAdministratorToken) && cnAdministratorToken
                 .equals(isAdministrator[0]));
     }
 
@@ -156,5 +171,27 @@ public class SolrSearchHandlerUtil {
         }
         return map;
     }
-
+    
+    /**
+     * 
+     * See: http://lucene.apache.org/java/docs/queryparsersyntax.html#Escaping%20Special%20Characters
+     * 
+     */
+    public static String escapeQueryChars(String s) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            // These characters are part of the query syntax and must be escaped
+            if (c == '\\' || c == '+' || c == '-' || c == '!'
+                    || c == '(' || c == ')' || c == ':'
+                    || c == '^' || c == '[' || c == ']' || c == '\"'
+                    || c == '{' || c == '}' || c == '~'
+                    || c == '*' || c == '?' || c == '|' || c == '&'
+                    || c == ';' || Character.isWhitespace(c)) {
+                sb.append('\\');
+            }
+            sb.append(c);
+        }
+        return sb.toString();
+    }
 }
