@@ -48,7 +48,7 @@ import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.web.mock.MockServlet;
 import org.dataone.cn.web.mock.MockWebApplicationContextLoader;
 import org.dataone.configuration.Settings;
-import org.dataone.solr.servlet.SessionAuthorizationFilter;
+import org.dataone.solr.servlet.LogServiceSessionAuthorizationFilter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,7 +69,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:/webapp/mockController-dispatcher.xml",
         "classpath:/webapp/mockController-beans.xml" }, loader = MockWebApplicationContextLoader.class)
-public class SessionAuthorizationFilterTestCase {
+public class LogServiceSessionAuthorizationFilterTestCase {
     private NodeLdapPopulation cnLdapPopulation;
     private SubjectLdapPopulation subjectLdapPopulation;
     private X509CertificateGenerator x509CertificateGenerator;
@@ -115,7 +115,7 @@ public class SessionAuthorizationFilterTestCase {
         MockFilterConfig fc = new MockFilterConfig(MockWebApplicationContextLoader.SERVLET_CONTEXT,
                 "ResolveFilter");
 
-        SessionAuthorizationFilter saf = new SessionAuthorizationFilter();
+        LogServiceSessionAuthorizationFilter saf = new LogServiceSessionAuthorizationFilter();
         try {
             saf.init(fc);
         } catch (ServletException se) {
@@ -194,10 +194,10 @@ public class SessionAuthorizationFilterTestCase {
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length > 0);
 
         String content = new String(responseWrapper.getBuffer());
-        assertThat("response should contain NotAuthorized", content,
-                containsString("NotAuthorized"));
-        // assertThat("response should contain " + primarySubject, content,
-        // containsString(primarySubject));
+//        assertThat("response should contain NotAuthorized", content,
+//                containsString("NotAuthorized"));
+       assertThat("response should contain " + primarySubject, content,
+       containsString(primarySubject));
     }
 
     // pass in a token that has administrative permission
@@ -232,7 +232,7 @@ public class SessionAuthorizationFilterTestCase {
         MockFilterConfig fc = new MockFilterConfig(MockWebApplicationContextLoader.SERVLET_CONTEXT,
                 "SessionAuthorizationFilter");
 
-        SessionAuthorizationFilter saf = new SessionAuthorizationFilter();
+        LogServiceSessionAuthorizationFilter saf = new LogServiceSessionAuthorizationFilter();
         try {
             saf.init(fc);
         } catch (ServletException se) {

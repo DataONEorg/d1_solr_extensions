@@ -30,6 +30,7 @@ import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.util.plugin.SolrCoreAware;
 import org.dataone.cn.servlet.http.ParameterKeys;
+import org.dataone.service.exceptions.NotAuthorized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +71,11 @@ public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
         // copy original params, add new params, set new param map in
         // SolrQueryRequest
         SolrParams solrParams = req.getParams();
+        String[] isMNAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
+        String[] isCNAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
+        if (SolrSearchHandlerUtil.isAdministrator(isCNAdministrator) && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
+            throw new NotAuthorized("1460", "Invalid Coordinating Node token");
+        }
         HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
                 .getConvertedParameters(solrParams);
 
@@ -77,8 +83,7 @@ public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
 
         SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(solrParams,
                 convertedSolrParams, READ_PERMISSION_FIELD);
-        String[] isMNAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
-        String[] isCNAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
+
         if (SolrSearchHandlerUtil.isAdministrator(isMNAdministrator) && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
             applyMNAdministratorRestriction(solrParams, convertedSolrParams, isMNAdministrator[0]);
         }

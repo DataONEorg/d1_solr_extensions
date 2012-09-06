@@ -82,9 +82,7 @@ public class SolrSearchHandlerUtil {
                         convertedSolrParams);
             }
         } else {
-            if (isAdministrator(isAdministrator)) {
-                logger.debug("found an administrative user");
-            } else {
+            if (! isAdministrator(isAdministrator)) {
                 MultiMapSolrParams.addParam(CommonParams.FQ, publicFilterString,
                         convertedSolrParams);
                 logger.warn("an invalid administrative user got passed initial verification in SessionAuthorizationFilter admin token: "
@@ -102,7 +100,7 @@ public class SolrSearchHandlerUtil {
 
         // if the cnAdministratorToken is not set in a properties file
         // then do not allow administrative access
-        return (isAdministrator != null && StringUtils.isNotEmpty(cnAdministratorToken));
+        return ((isAdministrator != null) && (isAdministrator.length > 0) && StringUtils.isNotEmpty(isAdministrator[0]));
     }
     public static boolean isCNAdministrator(String[] isAdministrator) {
         // we need to check the value of the isAdministrator param value
@@ -114,14 +112,14 @@ public class SolrSearchHandlerUtil {
 
         // if the cnAdministratorToken is not set in a properties file
         // then do not allow administrative access
-        return (isAdministrator != null && StringUtils.isNotEmpty(cnAdministratorToken) && cnAdministratorToken
+        return ((isAdministrator != null) && (isAdministrator.length > 0) && StringUtils.isNotEmpty(cnAdministratorToken) && cnAdministratorToken
                 .equals(isAdministrator[0]));
     }
 
     private static boolean notAdministrator(String[] isAdministrator) {
         // if the isAdministrator value of the solrParams is not
         // set or is of 0 length, then do not allow administrative access
-        return (isAdministrator == null) || (isAdministrator.length == 0);
+        return ((isAdministrator == null) || (isAdministrator.length == 0));
     }
 
     public static void logSolrParameters(HashMap<String, String[]> convertedSolrParams) {
