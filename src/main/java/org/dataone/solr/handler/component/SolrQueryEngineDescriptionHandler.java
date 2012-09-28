@@ -13,19 +13,19 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.solr.common.util.XML;
 import org.apache.solr.core.SolrCore;
-import org.apache.solr.handler.admin.LukeRequestHandler;
+import org.apache.solr.handler.RequestHandlerBase;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.util.plugin.SolrCoreAware;
 
-public class SolrQueryEngineDescriptionHandler extends LukeRequestHandler implements SolrCoreAware {
+public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implements SolrCoreAware {
 
     private String solrVersion = "3.4";
     private String schemaVersion = "1.0";
     private static final String NAME = "solr";
-    private String additionalInfo = null;
+    private String additionalInfo = "http://mule1.dataone.org/ArchitectureDocs-current/design/SearchMetadata.html";
     private static final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
     private static final String SCHEMA_VERSION_PROPERTY = "schema-version=";
     private List<String> fieldDescriptions = null;
