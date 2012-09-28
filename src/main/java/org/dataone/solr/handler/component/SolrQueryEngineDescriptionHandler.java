@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -23,19 +24,34 @@ public class SolrQueryEngineDescriptionHandler extends LukeRequestHandler implem
 
     private String solrVersion = "3.4";
     private String schemaVersion = "1.0";
-    private String name = "solr";
+    private static final String name = "solr";
     private String additionalInfo = null;
     private static final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
     private static final String SCHEMA_VERSION_PROPERTY = "schema-version=";
+    private List<SchemaFieldDescription> fieldDescriptions = null;
 
-    private Map<String, SchemaField> fieldMap = null;
+    public SolrQueryEngineDescriptionHandler() {
+    }
+
+    @Override
+    public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
+        rsp.add("queryEngineVersion", solrVersion);
+        rsp.add("querySchemaVersion", schemaVersion);
+        rsp.add("name", name);
+        rsp.add("additionalInfo", additionalInfo);
+        rsp.add("queryField", fieldDescriptions);
+    }
 
     @Override
     public void inform(SolrCore core) {
         IndexSchema schema = core.getSchema();
-        fieldMap = schema.getFields();
         setSchemaVersionFromPropertiesFile();
         setSolrVersion();
+        Map<String, SchemaField> fieldMap = schema.getFields();
+        fieldDescriptions = new ArrayList<SchemaFieldDescription>();
+        for (SchemaField schemaField : fieldMap.values()) {
+            fieldDescriptions.add(new SchemaFieldDescription(schemaField));
+        }
     }
 
     /**
@@ -80,15 +96,6 @@ public class SolrQueryEngineDescriptionHandler extends LukeRequestHandler implem
         }
     }
 
-    @Override
-    public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
-        rsp.add("queryEngineVersion", solrVersion);
-        rsp.add("querySchemaVersion", schemaVersion);
-        rsp.add("name", name);
-        rsp.add("additionalInfo", additionalInfo);
-        rsp.add("queryField", fieldMap.values());
-    }
-
     // ////////////////////// SolrInfoMBeans methods //////////////////////
     @Override
     public String getDescription() {
@@ -119,4 +126,40 @@ public class SolrQueryEngineDescriptionHandler extends LukeRequestHandler implem
         }
     }
 
+    public class SchemaFieldDescription {
+        private String name = "";
+        private String description = "";
+        private String type = "";
+        private boolean searchable;
+        private boolean returnable;
+        private boolean sortable;
+        private boolean multivalued;
+
+        public SchemaFieldDescription(SchemaField field) {
+            this.name = field.getName();
+            this.type = field.getType().getTypeName();
+            this.description = "description text";
+            this.searchable = field.indexed();
+            this.returnable = field.stored();
+            this.multivalued = field.multiValued();
+            this.sortable = isSortable(field);
+        }
+
+        private boolean isSortable(SchemaField field) {
+            String type = field.getType().getTypeName();
+            if ("int".equals(type) || "long".equals(type) || "float".equals(type)
+                    || "double".equals(type)) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "Name: " + name + ", Description: " + description + ", Type: " + type
+                    + ", Searchable: " + searchable + ", Returnable: " + returnable
+                    + ", Multivalued: " + multivalued + ", Sortable: " + sortable;
+        }
+    }
 }
