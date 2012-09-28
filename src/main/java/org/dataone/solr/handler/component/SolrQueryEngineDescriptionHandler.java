@@ -24,11 +24,11 @@ public class SolrQueryEngineDescriptionHandler extends LukeRequestHandler implem
 
     private String solrVersion = "3.4";
     private String schemaVersion = "1.0";
-    private static final String name = "solr";
+    private static final String NAME = "solr";
     private String additionalInfo = null;
     private static final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
     private static final String SCHEMA_VERSION_PROPERTY = "schema-version=";
-    private List<SchemaFieldDescription> fieldDescriptions = null;
+    private List<String> fieldDescriptions = null;
 
     public SolrQueryEngineDescriptionHandler() {
     }
@@ -37,9 +37,11 @@ public class SolrQueryEngineDescriptionHandler extends LukeRequestHandler implem
     public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
         rsp.add("queryEngineVersion", solrVersion);
         rsp.add("querySchemaVersion", schemaVersion);
-        rsp.add("name", name);
+        rsp.add("name", NAME);
         rsp.add("additionalInfo", additionalInfo);
-        rsp.add("queryField", fieldDescriptions);
+        for (String field : fieldDescriptions) {
+            rsp.add("queryField", field);
+        }
     }
 
     @Override
@@ -48,9 +50,9 @@ public class SolrQueryEngineDescriptionHandler extends LukeRequestHandler implem
         setSchemaVersionFromPropertiesFile();
         setSolrVersion();
         Map<String, SchemaField> fieldMap = schema.getFields();
-        fieldDescriptions = new ArrayList<SchemaFieldDescription>();
+        fieldDescriptions = new ArrayList<String>();
         for (SchemaField schemaField : fieldMap.values()) {
-            fieldDescriptions.add(new SchemaFieldDescription(schemaField));
+            fieldDescriptions.add(new SchemaFieldDescription(schemaField).toString());
         }
     }
 
@@ -157,9 +159,10 @@ public class SolrQueryEngineDescriptionHandler extends LukeRequestHandler implem
 
         @Override
         public String toString() {
-            return "Name: " + name + ", Description: " + description + ", Type: " + type
-                    + ", Searchable: " + searchable + ", Returnable: " + returnable
-                    + ", Multivalued: " + multivalued + ", Sortable: " + sortable;
+            return "<name>" + name + "</name><description>" + description + "</description><type>"
+                    + type + "</type><searchable>" + searchable + "</searchable><returnable>"
+                    + returnable + "</returnable><multivalued>" + multivalued
+                    + "</multivalued><sortable>" + sortable + "</sortable>";
         }
     }
 }
