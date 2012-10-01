@@ -218,7 +218,7 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         public int compare(QueryField arg0, QueryField arg1) {
             String field1Name = arg0.getName();
             String field2Name = arg1.getName();
-            return field1Name.compareTo(field2Name);
+            return field1Name.compareToIgnoreCase(field2Name);
         }
     }
 }
