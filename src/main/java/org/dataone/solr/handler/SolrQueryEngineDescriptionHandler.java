@@ -27,6 +27,9 @@ import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,9 +55,11 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
     private static final String NAME = "solr";
     private String additionalInfo = "http://mule1.dataone.org/ArchitectureDocs-current/design/SearchMetadata.html";
     private static final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
+    private static final String DESCRIPTION_PATH = "etc/dataone/index/solr/queryFieldDescriptions.properties";
     private static final String SCHEMA_VERSION_PROPERTY = "schema-version=";
-    private QueryEngineDescription qed = null;
     public static final String RESPONSE_KEY = "queryEngineDescription";
+    private QueryEngineDescription qed = null;
+    private Map<String, String> fieldDescriptions = null;
 
     private static Logger logger = LoggerFactory.getLogger(SolrQueryEngineDescriptionHandler.class);
 
@@ -68,6 +73,7 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
 
     @Override
     public void inform(SolrCore core) {
+        loadSchemaFieldDescriptions(fieldDescriptions);
         qed = new QueryEngineDescription();
         qed.setName(NAME);
         setSchemaVersionFromPropertiesFile(qed);
@@ -77,8 +83,9 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         IndexSchema schema = core.getSchema();
         Map<String, SchemaField> fieldMap = schema.getFields();
         for (SchemaField schemaField : fieldMap.values()) {
-            qed.addQueryField(createQueryFieldFromSchemaField(schemaField));
+            qed.addQueryField(createQueryFieldFromSchemaField(schemaField, fieldDescriptions));
         }
+        Collections.sort(qed.getQueryFieldList(), new QueryFieldAlphaComparator());
     }
 
     private void setAdditionalInfo(QueryEngineDescription qed) {
@@ -131,6 +138,27 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         qed.setQuerySchemaVersion(this.schemaVersion);
     }
 
+    private void loadSchemaFieldDescriptions(Map<String, String> fieldDescriptions) {
+        fieldDescriptions = new HashMap<String, String>();
+        File file = new File(DESCRIPTION_PATH);
+        if (file.exists()) {
+            try {
+                List lines = FileUtils.readLines(file, "UTF-8");
+                for (Object object : lines) {
+                    String line = (String) object;
+                    String[] tokens = StringUtils.split(line, "=");
+                    if (tokens.length == 2) {
+                        String name = tokens[0].trim();
+                        String description = tokens[1].trim();
+                        fieldDescriptions.put(name, description);
+                    }
+                }
+            } catch (IOException e) {
+                logger.error(e.getMessage(), e);
+            }
+        }
+    }
+
     // ////////////////////// SolrInfoMBeans methods //////////////////////
     @Override
     public String getDescription() {
@@ -161,11 +189,12 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         }
     }
 
-    public QueryField createQueryFieldFromSchemaField(SchemaField field) {
+    private QueryField createQueryFieldFromSchemaField(SchemaField field,
+            Map<String, String> fieldDescriptions) {
         QueryField queryField = new QueryField();
         queryField.setName(field.getName());
         queryField.setType(field.getType().getTypeName());
-        queryField.addDescription("description text");
+        queryField.addDescription(fieldDescriptions.get(field.getName()));
         queryField.setSearchable(field.indexed());
         queryField.setReturnable(field.stored());
         queryField.setMultivalued(field.multiValued());
@@ -183,4 +212,11 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         }
     }
 
+    private class QueryFieldAlphaComparator implements Comparator<QueryField> {
+        public int compare(QueryField arg0, QueryField arg1) {
+            String field1Name = arg0.getName();
+            String field2Name = arg1.getName();
+            return field1Name.compareTo(field2Name);
+        }
+    }
 }
