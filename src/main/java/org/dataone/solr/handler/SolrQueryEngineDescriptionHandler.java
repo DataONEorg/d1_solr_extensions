@@ -73,7 +73,7 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
 
     @Override
     public void inform(SolrCore core) {
-        loadSchemaFieldDescriptions(fieldDescriptions);
+        loadSchemaFieldDescriptions();
         qed = new QueryEngineDescription();
         qed.setName(NAME);
         setSchemaVersionFromPropertiesFile(qed);
@@ -83,7 +83,7 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         IndexSchema schema = core.getSchema();
         Map<String, SchemaField> fieldMap = schema.getFields();
         for (SchemaField schemaField : fieldMap.values()) {
-            qed.addQueryField(createQueryFieldFromSchemaField(schemaField, fieldDescriptions));
+            qed.addQueryField(createQueryFieldFromSchemaField(schemaField, this.fieldDescriptions));
         }
         Collections.sort(qed.getQueryFieldList(), new QueryFieldAlphaComparator());
     }
@@ -138,8 +138,8 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         qed.setQuerySchemaVersion(this.schemaVersion);
     }
 
-    private void loadSchemaFieldDescriptions(Map<String, String> fieldDescriptions) {
-        fieldDescriptions = new HashMap<String, String>();
+    private void loadSchemaFieldDescriptions() {
+        this.fieldDescriptions = new HashMap<String, String>();
         File file = new File(DESCRIPTION_PATH);
         if (file.exists()) {
             try {
