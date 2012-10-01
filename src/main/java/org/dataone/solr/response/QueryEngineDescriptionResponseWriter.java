@@ -44,22 +44,14 @@ import org.slf4j.LoggerFactory;
  */
 public class QueryEngineDescriptionResponseWriter implements QueryResponseWriter {
 
-    private static final String XML_START = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    private static final String D1_XSLT = "<?xml-stylesheet type=\"text/xsl\" href=\"/cn/xslt/dataone.types.v1.xsl\"?>\n";
+    private static final String D1_XSLT = "/cn/xslt/dataone.types.v1.xsl";
     private static Logger logger = LoggerFactory
             .getLogger(QueryEngineDescriptionResponseWriter.class);
-
-    // private static final String QUERY_ENGINE_DESCRIPTION_START =
-    // "<d1:queryEngineDescription xmlns:d1=\"http://ns.dataone.org/service/types/v1\">\n";
-    // private static final String QUERY_ENGINE_DESCRIPTION_END =
-    // "</d1:queryEngineDescription>\n";
 
     @Override
     public void write(Writer writer, SolrQueryRequest request, SolrQueryResponse response)
             throws IOException {
 
-        writer.write(XML_START);
-        writer.write(D1_XSLT);
         QueryEngineDescription qed = (QueryEngineDescription) response.getValues().get(
                 SolrQueryEngineDescriptionHandler.RESPONSE_KEY);
         writeQueryEngineDescription(qed, writer);
@@ -68,7 +60,7 @@ public class QueryEngineDescriptionResponseWriter implements QueryResponseWriter
     private void writeQueryEngineDescription(QueryEngineDescription qed, Writer writer) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         try {
-            TypeMarshaller.marshalTypeToOutputStream(qed, os);
+            TypeMarshaller.marshalTypeToOutputStream(qed, os, D1_XSLT);
         } catch (JiBXException jibxEx) {
             logger.error(jibxEx.getMessage(), jibxEx);
         } catch (IOException ioEx) {
