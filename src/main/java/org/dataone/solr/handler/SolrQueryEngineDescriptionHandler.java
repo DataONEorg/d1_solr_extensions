@@ -1,4 +1,25 @@
-package org.dataone.solr.handler.component;
+/**
+ * This work was created by participants in the DataONE project, and is
+ * jointly copyrighted by participating institutions in DataONE. For 
+ * more information on DataONE, see our web site at http://dataone.org.
+ *
+ *   Copyright ${year}
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and 
+ * limitations under the License.
+ * 
+ * $Id$
+ */
+package org.dataone.solr.handler;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +40,10 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.util.plugin.SolrCoreAware;
+import org.dataone.service.types.v1.QueryEngineDescription;
+import org.dataone.service.types.v1.QueryField;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implements SolrCoreAware {
 
@@ -28,38 +53,44 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
     private String additionalInfo = "http://mule1.dataone.org/ArchitectureDocs-current/design/SearchMetadata.html";
     private static final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
     private static final String SCHEMA_VERSION_PROPERTY = "schema-version=";
-    private List<String> fieldDescriptions = null;
+    private QueryEngineDescription qed = null;
+    public static final String RESPONSE_KEY = "queryEngineDescription";
+
+    private static Logger logger = LoggerFactory.getLogger(SolrQueryEngineDescriptionHandler.class);
 
     public SolrQueryEngineDescriptionHandler() {
     }
 
     @Override
     public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
-        rsp.add("queryEngineVersion", solrVersion);
-        rsp.add("querySchemaVersion", schemaVersion);
-        rsp.add("name", NAME);
-        rsp.add("additionalInfo", additionalInfo);
-        for (String field : fieldDescriptions) {
-            rsp.add("queryField", field);
-        }
+        rsp.add(RESPONSE_KEY, qed);
     }
 
     @Override
     public void inform(SolrCore core) {
+        qed = new QueryEngineDescription();
+        qed.setName(NAME);
+        setSchemaVersionFromPropertiesFile(qed);
+        setSolrVersion(qed);
+        setAdditionalInfo(qed);
+
         IndexSchema schema = core.getSchema();
-        setSchemaVersionFromPropertiesFile();
-        setSolrVersion();
         Map<String, SchemaField> fieldMap = schema.getFields();
-        fieldDescriptions = new ArrayList<String>();
         for (SchemaField schemaField : fieldMap.values()) {
-            fieldDescriptions.add(new SchemaFieldDescription(schemaField).toString());
+            qed.addQueryField(createQueryFieldFromSchemaField(schemaField));
         }
+    }
+
+    private void setAdditionalInfo(QueryEngineDescription qed) {
+        List<String> info = new ArrayList<String>();
+        info.add(this.additionalInfo);
+        qed.setAdditionalInfoList(info);
     }
 
     /**
      * Based on org.apache.solr.handler.admin.SystemInfoHandler.getLuceneInfo()
      */
-    private void setSolrVersion() {
+    private void setSolrVersion(QueryEngineDescription qed) {
         String solrSpecVersion = "";
 
         Package p = SolrCore.class.getPackage();
@@ -76,9 +107,10 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         if (StringUtils.isNotBlank(solrSpecVersion)) {
             this.solrVersion = solrSpecVersion;
         }
+        qed.setQueryEngineVersion(this.solrVersion);
     }
 
-    private void setSchemaVersionFromPropertiesFile() {
+    private void setSchemaVersionFromPropertiesFile(QueryEngineDescription qed) {
         File file = new File(SCHEMA_PROPERTIES_PATH);
         if (file.exists()) {
             try {
@@ -93,9 +125,10 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
             }
         }
+        qed.setQuerySchemaVersion(this.schemaVersion);
     }
 
     // ////////////////////// SolrInfoMBeans methods //////////////////////
@@ -128,41 +161,26 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         }
     }
 
-    public class SchemaFieldDescription {
-        private String name = "";
-        private String description = "";
-        private String type = "";
-        private boolean searchable;
-        private boolean returnable;
-        private boolean sortable;
-        private boolean multivalued;
+    public QueryField createQueryFieldFromSchemaField(SchemaField field) {
+        QueryField queryField = new QueryField();
+        queryField.setName(field.getName());
+        queryField.setType(field.getType().getTypeName());
+        queryField.addDescription("description text");
+        queryField.setSearchable(field.indexed());
+        queryField.setReturnable(field.stored());
+        queryField.setMultivalued(field.multiValued());
+        queryField.setSortable(isSortable(field));
+        return queryField;
+    }
 
-        public SchemaFieldDescription(SchemaField field) {
-            this.name = field.getName();
-            this.type = field.getType().getTypeName();
-            this.description = "description text";
-            this.searchable = field.indexed();
-            this.returnable = field.stored();
-            this.multivalued = field.multiValued();
-            this.sortable = isSortable(field);
-        }
-
-        private boolean isSortable(SchemaField field) {
-            String type = field.getType().getTypeName();
-            if ("int".equals(type) || "long".equals(type) || "float".equals(type)
-                    || "double".equals(type)) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "<name>" + name + "</name><description>" + description + "</description><type>"
-                    + type + "</type><searchable>" + searchable + "</searchable><returnable>"
-                    + returnable + "</returnable><multivalued>" + multivalued
-                    + "</multivalued><sortable>" + sortable + "</sortable>";
+    private boolean isSortable(SchemaField field) {
+        String type = field.getType().getTypeName();
+        if ("int".equals(type) || "long".equals(type) || "float".equals(type)
+                || "double".equals(type)) {
+            return false;
+        } else {
+            return true;
         }
     }
+
 }
