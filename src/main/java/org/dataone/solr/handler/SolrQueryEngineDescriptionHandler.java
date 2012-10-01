@@ -55,7 +55,7 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
     private static final String NAME = "solr";
     private String additionalInfo = "http://mule1.dataone.org/ArchitectureDocs-current/design/SearchMetadata.html";
     private static final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
-    private static final String DESCRIPTION_PATH = "etc/dataone/index/solr/queryFieldDescriptions.properties";
+    private static final String DESCRIPTION_PATH = "/etc/dataone/index/solr/queryFieldDescriptions.properties";
     private static final String SCHEMA_VERSION_PROPERTY = "schema-version=";
     public static final String RESPONSE_KEY = "queryEngineDescription";
     private QueryEngineDescription qed = null;
