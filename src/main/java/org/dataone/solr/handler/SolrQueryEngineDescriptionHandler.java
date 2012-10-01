@@ -194,7 +194,9 @@ public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implem
         QueryField queryField = new QueryField();
         queryField.setName(field.getName());
         queryField.setType(field.getType().getTypeName());
-        queryField.addDescription(fieldDescriptions.get(field.getName()));
+        if (StringUtils.isNotBlank(fieldDescriptions.get(field.getName()))) {
+            queryField.addDescription(fieldDescriptions.get(field.getName()));
+        }
         queryField.setSearchable(field.indexed());
         queryField.setReturnable(field.stored());
         queryField.setMultivalued(field.multiValued());
