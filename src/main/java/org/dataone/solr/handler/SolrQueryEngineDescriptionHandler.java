@@ -50,9 +50,13 @@ import org.slf4j.LoggerFactory;
 
 public class SolrQueryEngineDescriptionHandler extends RequestHandlerBase implements SolrCoreAware {
 
-    private String solrVersion = "3.4";
-    private String schemaVersion = "1.0";
     private static final String NAME = "solr";
+
+    // default value - will be set by inform()
+    private String solrVersion = "";
+    // default value - will be set by inform()
+    private String schemaVersion = "";
+
     private String additionalInfo = "http://mule1.dataone.org/ArchitectureDocs-current/design/SearchMetadata.html";
     private static final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
     private static final String DESCRIPTION_PATH = "/etc/dataone/index/solr/queryFieldDescriptions.properties";
