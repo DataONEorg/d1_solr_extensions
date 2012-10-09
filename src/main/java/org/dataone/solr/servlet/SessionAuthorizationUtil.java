@@ -19,7 +19,9 @@ package org.dataone.solr.servlet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -40,6 +42,7 @@ import org.dataone.service.types.v1.Person;
 import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 import org.dataone.service.types.v1.SubjectInfo;
+import org.dataone.service.types.v1.util.AuthUtils;
 import org.dataone.service.util.Constants;
 
 /**
@@ -65,6 +68,18 @@ public class SessionAuthorizationUtil {
         fc.doFilter(proxyRequest, response);
     }
 
+    public static void addSubjectsToRequest(ProxyServletRequestWrapper proxyRequest, Session session) {
+        Set<Subject> subjects = AuthUtils.authorizedClientSubjects(session);
+        if (subjects.isEmpty() == false) {
+            Set<String> subjectValues = new HashSet<String>();
+            for (Subject subject : subjects) {
+                subjectValues.add(subject.getValue());
+            }
+            proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS,
+                    subjectValues.toArray(new String[0]));
+        }
+    }
+
     public static void addAuthenticatedSubjectsToRequest(ProxyServletRequestWrapper proxyRequest,
             Session session, Subject authorizedSubject) throws ServiceFailure, NotAuthorized,
             NotImplemented {
@@ -83,10 +98,8 @@ public class SessionAuthorizationUtil {
             // subjectInfo provided with the certificate.
 
             // XXX if the subject has had all rights revoked or for some reason
-            // removed
-            // from the system, then this call will allow information provided
-            // in the
-            // certificate to override changes to the system
+            // removed from the system, then this call will allow information
+            // provided in the certificate to override changes to the system
             authorizedSubjectInfo = session.getSubjectInfo();
         }
         if (authorizedSubjectInfo == null) {

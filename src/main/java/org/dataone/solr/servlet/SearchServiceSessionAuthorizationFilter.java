@@ -44,8 +44,7 @@ public class SearchServiceSessionAuthorizationFilter extends SessionAuthorizatio
     protected void addAuthenticatedSubjectsToRequest(ProxyServletRequestWrapper proxyRequest,
             Session session, Subject authorizedSubject) throws ServiceFailure, NotAuthorized,
             NotImplemented {
-        SessionAuthorizationUtil.addAuthenticatedSubjectsToRequest(proxyRequest, session,
-                authorizedSubject);
+        SessionAuthorizationUtil.addSubjectsToRequest(proxyRequest, session);
     }
 
     protected String getServiceMethodName() {
