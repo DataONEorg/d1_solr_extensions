@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
@@ -29,8 +31,6 @@ import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.util.plugin.SolrCoreAware;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Custom Solr SearchHandler to provide DataONE security filtering behavior.
@@ -53,7 +53,7 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
         readPermissionFields.add(CHANGE_PERMISSION_FIELD);
     }
 
-    private static Logger logger = LoggerFactory.getLogger(SolrSearchHandler.class);
+    private Log logger = LogFactory.getLog(SolrSearchHandler.class);
 
     @Override
     public void handleRequestBody(SolrQueryRequest request, SolrQueryResponse response)

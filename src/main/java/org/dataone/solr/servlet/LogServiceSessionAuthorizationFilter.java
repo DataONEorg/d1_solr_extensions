@@ -47,7 +47,6 @@ public class LogServiceSessionAuthorizationFilter extends SessionAuthorizationFi
             ServletResponse response, FilterChain fc) throws ServletException, IOException,
             NotAuthorized {
         // public is not allowed to see any
-        logger.debug("log solr service handling no cert.");
         NotAuthorized noAuth = new NotAuthorized("1460",
                 "Logging is only available to Authenticated users");
         throw noAuth;
