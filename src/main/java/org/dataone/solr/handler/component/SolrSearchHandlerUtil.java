@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.SolrParams;
@@ -31,8 +33,6 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.request.SolrQueryRequest;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.configuration.Settings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Utility class to provide shared behavior among extensions/customizations of
@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SolrSearchHandlerUtil {
 
-    private static Logger logger = LoggerFactory.getLogger(SolrSearchHandlerUtil.class);
+    private static Log logger = LogFactory.getLog(SolrSearchHandlerUtil.class);
     private static String publicFilterString = "isPublic:true";
     private static String cnAdministratorToken = Settings.getConfiguration().getString(
             "cn.solrAdministrator.token");

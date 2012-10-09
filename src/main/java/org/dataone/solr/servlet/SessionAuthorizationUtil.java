@@ -25,6 +25,8 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletResponse;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.dataone.client.auth.CertificateManager;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
@@ -39,8 +41,6 @@ import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 import org.dataone.service.types.v1.SubjectInfo;
 import org.dataone.service.util.Constants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Provide base session authorization behavior. For use by concrete
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SessionAuthorizationUtil {
 
-    private static Logger logger = LoggerFactory.getLogger(SessionAuthorizationUtil.class);
+    protected static Log logger = LogFactory.getLog(SessionAuthorizationUtil.class);
     private static final CNIdentityLDAPImpl identityService = new CNIdentityLDAPImpl();
 
     private SessionAuthorizationUtil() {
@@ -81,9 +81,11 @@ public class SessionAuthorizationUtil {
         } catch (NotFound e) {
             // if problem getting the subjectInfo, use the
             // subjectInfo provided with the certificate.
-            
-            // XXX if the subject has had all rights revoked or for some reason removed
-            // from the system, then this call will allow information provided in the
+
+            // XXX if the subject has had all rights revoked or for some reason
+            // removed
+            // from the system, then this call will allow information provided
+            // in the
             // certificate to override changes to the system
             authorizedSubjectInfo = session.getSubjectInfo();
         }

@@ -65,7 +65,7 @@ import org.dataone.service.types.v1.Subject;
  */
 public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
-    protected Log logger = LogFactory.getLog(SessionAuthorizationFilterStrategy.class);
+    protected static Log logger = LogFactory.getLog(SessionAuthorizationFilterStrategy.class);
 
     private static NodeRegistryService nodeRegistryService = new NodeRegistryService();
     private static String adminToken = Settings.getConfiguration().getString(

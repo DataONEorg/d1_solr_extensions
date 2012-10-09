@@ -42,7 +42,7 @@ import org.apache.solr.util.plugin.SolrCoreAware;
 public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
 
     private static final String READ_PERMISSION_FIELD = "readPermission";
-    private static final String RIGHTS_HOLDER_FIELD = "rightsHolders";
+    private static final String RIGHTS_HOLDER_FIELD = "rightsHolder";
     private static final String WRITE_PERMISSION_FIELD = "writePermission";
     private static final String CHANGE_PERMISSION_FIELD = "changePermission";
     private static List<String> readPermissionFields = new ArrayList<String>();
@@ -53,7 +53,7 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
         readPermissionFields.add(CHANGE_PERMISSION_FIELD);
     }
 
-    private Log logger = LogFactory.getLog(SolrSearchHandler.class);
+    private static Log logger = LogFactory.getLog(SolrSearchHandler.class);
 
     @Override
     public void handleRequestBody(SolrQueryRequest request, SolrQueryResponse response)
