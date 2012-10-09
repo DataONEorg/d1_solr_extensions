@@ -17,7 +17,9 @@
  */
 package org.dataone.solr.handler.component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.solr.common.params.CommonParams;
@@ -40,6 +42,17 @@ import org.slf4j.LoggerFactory;
 public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
 
     private static final String READ_PERMISSION_FIELD = "readPermission";
+    private static final String RIGHTS_HOLDER_FIELD = "rightsHolders";
+    private static final String WRITE_PERMISSION_FIELD = "writePermission";
+    private static final String CHANGE_PERMISSION_FIELD = "changePermission";
+    private static List<String> readPermissionFields = new ArrayList<String>();
+    static {
+        readPermissionFields.add(READ_PERMISSION_FIELD);
+        readPermissionFields.add(RIGHTS_HOLDER_FIELD);
+        readPermissionFields.add(WRITE_PERMISSION_FIELD);
+        readPermissionFields.add(CHANGE_PERMISSION_FIELD);
+    }
+
     private static Logger logger = LoggerFactory.getLogger(SolrSearchHandler.class);
 
     @Override
@@ -59,7 +72,7 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
         SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
 
         SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(solrParams,
-                convertedSolrParams, READ_PERMISSION_FIELD);
+                convertedSolrParams, readPermissionFields);
 
         SolrSearchHandlerUtil.setNewSolrParameters(request, convertedSolrParams);
 

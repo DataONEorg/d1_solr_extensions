@@ -19,6 +19,8 @@ package org.dataone.solr.handler.component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -53,10 +55,18 @@ public class SolrSearchHandlerUtil {
 
     public static void applyReadRestrictionQueryFilterParameters(SolrParams solrParams,
             HashMap<String, String[]> convertedSolrParams, String readField) {
+        List<String> readFields = new ArrayList<String>();
+        readFields.add(readField);
+        applyReadRestrictionQueryFilterParameters(solrParams, convertedSolrParams, readFields);
+    }
+
+    public static void applyReadRestrictionQueryFilterParameters(SolrParams solrParams,
+            HashMap<String, String[]> convertedSolrParams, List<String> readFields) {
 
         String[] isAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
         if ((isAdministrator == null) || (isAdministrator.length == 0)) {
-            // might be a membernode, and depending on the implemenation this may have consequences
+            // might be a membernode, and depending on the implemenation this
+            // may have consequences
             isAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
         }
         convertedSolrParams.remove(ParameterKeys.AUTHORIZED_SUBJECTS);
@@ -69,20 +79,41 @@ public class SolrSearchHandlerUtil {
                 for (int i = 0; i < authorizedSubjects.length; i++) {
                     // since subjects may have spaces in them, format the string
                     // in quotes
-                    authorizedSubjectList.add("\"" + escapeQueryChars(authorizedSubjects[i]) + "\"");
+                    authorizedSubjectList
+                            .add("\"" + escapeQueryChars(authorizedSubjects[i]) + "\"");
                 }
-                String readPermissionFilterString = readField + ":"
-                        + StringUtils.join(authorizedSubjectList, " OR " + readField + ":");
-                logger.debug("read permission string: " + readPermissionFilterString);
-                MultiMapSolrParams.addParam(CommonParams.FQ, readPermissionFilterString,
+
+                StringBuffer readFqValue = new StringBuffer();
+                readFqValue.append("(");
+                for (Iterator<String> it = readFields.iterator(); it.hasNext();) {
+                    String readField = (String) it.next();
+                    readFqValue.append("(");
+                    String readFieldString = readField + ":"
+                            + StringUtils.join(authorizedSubjectList, " OR " + readField + ":");
+                    readFqValue.append(readFieldString);
+                    readFqValue.append(")");
+                    System.out.println("****SEARCH SECURITY - read string for single field: "
+                            + readFieldString);
+                    System.out.println("****Search Security - full string: "
+                            + readFqValue.toString());
+                    if (it.hasNext()) {
+                        readFqValue.append(" OR ");
+                    }
+                }
+                readFqValue.append(")");
+                System.out.println();
+                logger.debug("**** Search security - full read permission string: "
+                        + readFqValue.toString());
+                MultiMapSolrParams.addParam(CommonParams.FQ, readFqValue.toString(),
                         convertedSolrParams);
+
             } else {
                 logger.debug("found a public user");
                 MultiMapSolrParams.addParam(CommonParams.FQ, publicFilterString,
                         convertedSolrParams);
             }
         } else {
-            if (! isAdministrator(isAdministrator)) {
+            if (!isAdministrator(isAdministrator)) {
                 MultiMapSolrParams.addParam(CommonParams.FQ, publicFilterString,
                         convertedSolrParams);
                 logger.warn("an invalid administrative user got passed initial verification in SessionAuthorizationFilter admin token: "
@@ -90,6 +121,7 @@ public class SolrSearchHandlerUtil {
             }
         }
     }
+
     public static boolean isAdministrator(String[] isAdministrator) {
         // we need to check the value of the isAdministrator param value
         //
@@ -100,8 +132,10 @@ public class SolrSearchHandlerUtil {
 
         // if the cnAdministratorToken is not set in a properties file
         // then do not allow administrative access
-        return ((isAdministrator != null) && (isAdministrator.length > 0) && StringUtils.isNotEmpty(isAdministrator[0]));
+        return ((isAdministrator != null) && (isAdministrator.length > 0) && StringUtils
+                .isNotEmpty(isAdministrator[0]));
     }
+
     public static boolean isCNAdministrator(String[] isAdministrator) {
         // we need to check the value of the isAdministrator param value
         //
@@ -112,8 +146,9 @@ public class SolrSearchHandlerUtil {
 
         // if the cnAdministratorToken is not set in a properties file
         // then do not allow administrative access
-        return ((isAdministrator != null) && (isAdministrator.length > 0) && StringUtils.isNotEmpty(cnAdministratorToken) && cnAdministratorToken
-                .equals(isAdministrator[0]));
+        return ((isAdministrator != null) && (isAdministrator.length > 0)
+                && StringUtils.isNotEmpty(cnAdministratorToken) && cnAdministratorToken
+                    .equals(isAdministrator[0]));
     }
 
     private static boolean notAdministrator(String[] isAdministrator) {
@@ -169,10 +204,12 @@ public class SolrSearchHandlerUtil {
         }
         return map;
     }
-    
+
     /**
      * 
-     * See: http://lucene.apache.org/java/docs/queryparsersyntax.html#Escaping%20Special%20Characters
+     * See:
+     * http://lucene.apache.org/java/docs/queryparsersyntax.html#Escaping%20
+     * Special%20Characters
      * 
      */
     public static String escapeQueryChars(String s) {
@@ -180,12 +217,10 @@ public class SolrSearchHandlerUtil {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             // These characters are part of the query syntax and must be escaped
-            if (c == '\\' || c == '+' || c == '-' || c == '!'
-                    || c == '(' || c == ')' || c == ':'
-                    || c == '^' || c == '[' || c == ']' || c == '\"'
-                    || c == '{' || c == '}' || c == '~'
-                    || c == '*' || c == '?' || c == '|' || c == '&'
-                    || c == ';' || Character.isWhitespace(c)) {
+            if (c == '\\' || c == '+' || c == '-' || c == '!' || c == '(' || c == ')' || c == ':'
+                    || c == '^' || c == '[' || c == ']' || c == '\"' || c == '{' || c == '}'
+                    || c == '~' || c == '*' || c == '?' || c == '|' || c == '&' || c == ';'
+                    || Character.isWhitespace(c)) {
                 sb.append('\\');
             }
             sb.append(c);
