@@ -37,6 +37,7 @@ public class SearchServiceSessionAuthorizationFilter extends SessionAuthorizatio
     protected void handleNoCertificateManagerSession(ProxyServletRequestWrapper proxyRequest,
             ServletResponse response, FilterChain fc) throws ServletException, IOException,
             NotAuthorized {
+        logger.debug("solr search filter handling no cert.");
         SessionAuthorizationUtil.handleNoCertificateManagerSession(proxyRequest, response, fc);
     }
 

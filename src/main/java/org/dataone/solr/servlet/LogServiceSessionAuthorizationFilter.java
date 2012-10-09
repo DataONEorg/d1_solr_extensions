@@ -34,7 +34,6 @@ import org.dataone.service.types.v1.Subject;
 public class LogServiceSessionAuthorizationFilter extends SessionAuthorizationFilterStrategy
         implements Filter {
 
-    
     @Override
     protected void addAuthenticatedSubjectsToRequest(ProxyServletRequestWrapper proxyRequest,
             Session session, Subject authorizedSubject) throws ServiceFailure, NotAuthorized,
@@ -48,6 +47,7 @@ public class LogServiceSessionAuthorizationFilter extends SessionAuthorizationFi
             ServletResponse response, FilterChain fc) throws ServletException, IOException,
             NotAuthorized {
         // public is not allowed to see any
+        logger.debug("log solr service handling no cert.");
         NotAuthorized noAuth = new NotAuthorized("1460",
                 "Logging is only available to Authenticated users");
         throw noAuth;
