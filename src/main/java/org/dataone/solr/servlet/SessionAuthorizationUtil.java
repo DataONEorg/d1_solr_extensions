@@ -37,8 +37,6 @@ import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotFound;
 import org.dataone.service.exceptions.NotImplemented;
 import org.dataone.service.exceptions.ServiceFailure;
-import org.dataone.service.types.v1.Group;
-import org.dataone.service.types.v1.Person;
 import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 import org.dataone.service.types.v1.SubjectInfo;
@@ -107,36 +105,10 @@ public class SessionAuthorizationUtil {
                     authorizedSubject.getValue());
             authorizedSubjects.add(standardizedName);
         } else {
-            // populate the authorizedSubjects list from the subjectInfo.
-            if (authorizedSubjectInfo.sizeGroupList() > 0) {
-                for (Group authGroup : authorizedSubjectInfo.getGroupList()) {
-                    try {
-                        String standardizedName = CertificateManager.getInstance().standardizeDN(
-                                authGroup.getSubject().getValue());
-                        authorizedSubjects.add(standardizedName);
-                        logger.info("found administrative subject");
-                    } catch (IllegalArgumentException ex) {
-                        logger.warn("Found improperly formatted group subject: "
-                                + authGroup.getSubject().getValue() + "\n" + ex.getMessage());
-                        authorizedSubjects.add(authGroup.getSubject().getValue());
-                    }
-                }
-            }
-            if (authorizedSubjectInfo.sizePersonList() > 0) {
-                for (Person authPerson : authorizedSubjectInfo.getPersonList()) {
-                    if (authPerson.getVerified() != null && authPerson.getVerified()) {
-                        authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
-                    }
-
-                    try {
-                        String standardizedName = CertificateManager.getInstance().standardizeDN(
-                                authPerson.getSubject().getValue());
-                        authorizedSubjects.add(standardizedName);
-                    } catch (IllegalArgumentException ex) {
-                        logger.error("Found improperly formatted person subject: "
-                                + authPerson.getSubject().getValue() + "\n" + ex.getMessage());
-                    }
-                }
+            Set<Subject> subjectSet = new HashSet<Subject>();
+            AuthUtils.findPersonsSubjects(subjectSet, authorizedSubjectInfo, authorizedSubject);
+            for (Subject subject : subjectSet) {
+                authorizedSubjects.add(subject.getValue());
             }
         }
         if (!authorizedSubjects.isEmpty()) {
