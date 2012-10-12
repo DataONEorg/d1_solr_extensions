@@ -109,7 +109,13 @@ public class SessionAuthorizationUtil {
             AuthUtils.findPersonsSubjects(subjectSet, authorizedSubjectInfo, authorizedSubject);
             for (Subject subject : subjectSet) {
                 if (subject != null) {
-                    authorizedSubjects.add(subject.getValue());
+                    if (Constants.SUBJECT_VERIFIED_USER.equals(subject.getValue())) {
+                        authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
+                    } else {
+                        String standardizedName = CertificateManager.getInstance().standardizeDN(
+                                subject.getValue());
+                        authorizedSubjects.add(standardizedName);
+                    }
                 }
             }
         }
