@@ -108,7 +108,9 @@ public class SessionAuthorizationUtil {
             Set<Subject> subjectSet = new HashSet<Subject>();
             AuthUtils.findPersonsSubjects(subjectSet, authorizedSubjectInfo, authorizedSubject);
             for (Subject subject : subjectSet) {
-                authorizedSubjects.add(subject.getValue());
+                if (subject != null) {
+                    authorizedSubjects.add(subject.getValue());
+                }
             }
         }
         if (!authorizedSubjects.isEmpty()) {
