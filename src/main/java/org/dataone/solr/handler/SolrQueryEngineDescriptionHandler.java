@@ -43,8 +43,8 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.util.plugin.SolrCoreAware;
-import org.dataone.service.types.v1.QueryEngineDescription;
-import org.dataone.service.types.v1.QueryField;
+import org.dataone.service.types.v1_1.QueryEngineDescription;
+import org.dataone.service.types.v1_1.QueryField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
