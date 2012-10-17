@@ -66,18 +66,6 @@ public class SessionAuthorizationUtil {
         fc.doFilter(proxyRequest, response);
     }
 
-    public static void addSubjectsToRequest(ProxyServletRequestWrapper proxyRequest, Session session) {
-        Set<Subject> subjects = AuthUtils.authorizedClientSubjects(session);
-        if (subjects.isEmpty() == false) {
-            Set<String> subjectValues = new HashSet<String>();
-            for (Subject subject : subjects) {
-                subjectValues.add(subject.getValue());
-            }
-            proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS,
-                    subjectValues.toArray(new String[0]));
-        }
-    }
-
     public static void addAuthenticatedSubjectsToRequest(ProxyServletRequestWrapper proxyRequest,
             Session session, Subject authorizedSubject) throws ServiceFailure, NotAuthorized,
             NotImplemented {
