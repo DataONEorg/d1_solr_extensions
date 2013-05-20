@@ -278,7 +278,15 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
-        }
+        } catch (Exception ex) {
+        	ServiceFailure sfe = new ServiceFailure("1490", ex.getClass() + ": "+ ex.getMessage());
+    		sfe.setStackTrace(ex.getStackTrace());
+            String failure = sfe.serialize(BaseException.FMT_XML);
+            ((HttpServletResponse) response).setStatus(500);
+            response.getOutputStream().write(failure.getBytes());
+            response.getOutputStream().flush();
+            response.getOutputStream().close();
+        } 
     }
 
     /*
