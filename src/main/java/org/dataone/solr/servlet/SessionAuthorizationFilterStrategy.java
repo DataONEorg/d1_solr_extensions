@@ -41,7 +41,6 @@ import org.dataone.configuration.Settings;
 import org.dataone.portal.PortalCertificateManager;
 import org.dataone.service.cn.impl.v1.NodeRegistryService;
 import org.dataone.service.exceptions.BaseException;
-import org.dataone.service.exceptions.InvalidToken;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotImplemented;
 import org.dataone.service.exceptions.ServiceFailure;
@@ -193,8 +192,14 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR, emptyValues);
             }
             // check if we have the certificate (session) already
-            Session session = PortalCertificateManager.getInstance()
-                    .registerPortalCertificateAndPlaceOnRequest((HttpServletRequest) request);
+            Session session = null;
+            try {
+                session = PortalCertificateManager.getInstance()
+                        .registerPortalCertificateAndPlaceOnRequest((HttpServletRequest) request);
+            } catch (Exception e) {
+                logger.debug("Caught exception attempting to find user session.", e);
+            }
+
             if (session != null) {
                 // we have a authenticated user, maybe an administrator or
                 if (isTimeForRefresh()) {
@@ -268,13 +273,6 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             ex.setDetail_code("1461");
             String failure = ex.serialize(BaseException.FMT_XML);
             ((HttpServletResponse) response).setStatus(400);
-            response.getOutputStream().write(failure.getBytes());
-            response.getOutputStream().flush();
-            response.getOutputStream().close();
-        } catch (InvalidToken ex) {
-            ex.setDetail_code("1470");
-            String failure = ex.serialize(BaseException.FMT_XML);
-            ((HttpServletResponse) response).setStatus(401);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
