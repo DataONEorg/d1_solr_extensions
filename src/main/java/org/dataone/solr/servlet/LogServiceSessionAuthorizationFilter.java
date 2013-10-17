@@ -31,6 +31,7 @@ import org.dataone.service.exceptions.ServiceFailure;
 import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 
+
 public class LogServiceSessionAuthorizationFilter extends SessionAuthorizationFilterStrategy
         implements Filter {
 
@@ -47,9 +48,12 @@ public class LogServiceSessionAuthorizationFilter extends SessionAuthorizationFi
             ServletResponse response, FilterChain fc) throws ServletException, IOException,
             NotAuthorized {
         // public is not allowed to see any
-        NotAuthorized noAuth = new NotAuthorized("1460",
-                "Logging is only available to Authenticated users");
-        throw noAuth;
+        // NotAuthorized noAuth = new NotAuthorized("1460",
+        //        "Logging is only available to Authenticated users");
+        // throw noAuth;
+        
+        logger.debug("solr search filter handling no cert.");
+        SessionAuthorizationUtil.handleNoCertificateManagerSession(proxyRequest, response, fc);
     }
 
     @Override

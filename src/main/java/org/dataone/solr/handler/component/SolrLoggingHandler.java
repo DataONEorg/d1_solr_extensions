@@ -18,11 +18,14 @@
 package org.dataone.solr.handler.component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.handler.component.SearchHandler;
@@ -70,22 +73,54 @@ public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
         // have to reset the parameters , so create a new parameters map
         // copy original params, add new params, set new param map in
         // SolrQueryRequest
+
         SolrParams solrParams = req.getParams();
+        HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
+                    .getConvertedParameters(solrParams);
         String[] isMNAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
         String[] isCNAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
-        if (SolrSearchHandlerUtil.isAdministrator(isCNAdministrator) && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
-            throw new NotAuthorized("1460", "Invalid Coordinating Node token");
-        }
-        HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
-                .getConvertedParameters(solrParams);
+        String[] authorizedSubjects = solrParams.getParams(ParameterKeys.AUTHORIZED_SUBJECTS);
 
-        SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
+        if ( SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator) || SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator) || SolrSearchHandlerUtil.isValidSolrParam(authorizedSubjects) ) {
+            if (SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator) && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
+                throw new NotAuthorized("1460", "Invalid Coordinating Node token");
+            }
+            SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
 
-        SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(solrParams,
-                convertedSolrParams, READ_PERMISSION_FIELD);
+            SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(solrParams,
+                    convertedSolrParams, READ_PERMISSION_FIELD);
 
-        if (SolrSearchHandlerUtil.isAdministrator(isMNAdministrator) && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
-            applyMNAdministratorRestriction(solrParams, convertedSolrParams, isMNAdministrator[0]);
+            if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator) && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
+                applyMNAdministratorRestriction(solrParams, convertedSolrParams, isMNAdministrator[0]);
+            }
+        } else {
+            
+            // Task #3886: Filter the d1-cn-log index based on a public role
+            //this is a non-authorized user call. just return summary information and
+            //redact sensitive columns from facets
+            // For the first version of the d1_dashboard application, filter Solr queries to provide public access to only the summary information returned by Solr. This requires that queries by the public user
+            // 1) should be accepted
+            // 2) should have the rows parameter set to 0 despite the input prior to executing the query
+            // 3) queries that include facets should redact the ipAddress, userAgent,readPermission and subject fields from the facet.field parameter prior to executing the query
+            // 4) facet.prefix should be entirely removed
+            // 5)  facet.query should redact any queries on the ipAddress, userAgent,readPermission and subject
+
+            replaceParam(CommonParams.ROWS, "0", convertedSolrParams);
+            if (convertedSolrParams.containsKey(FacetParams.FACET_FIELD)) {
+                removeParamValue(FacetParams.FACET_FIELD, "ipAddress", convertedSolrParams);       
+                removeParamValue(FacetParams.FACET_FIELD, "userAgent", convertedSolrParams); 
+                removeParamValue(FacetParams.FACET_FIELD, "readPermission", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_FIELD, "subject", convertedSolrParams);
+            }
+            if (convertedSolrParams.containsKey(FacetParams.FACET_QUERY)) {
+                removeParamValue(FacetParams.FACET_QUERY, "ipAddress", convertedSolrParams);       
+                removeParamValue(FacetParams.FACET_QUERY, "userAgent", convertedSolrParams); 
+                removeParamValue(FacetParams.FACET_QUERY, "readPermission", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_QUERY, "subject", convertedSolrParams);
+            }
+            if (convertedSolrParams.containsKey(FacetParams.FACET_PREFIX)) {
+                convertedSolrParams.remove(FacetParams.FACET_PREFIX);
+            }
         }
         SolrSearchHandlerUtil.setNewSolrParameters(req, convertedSolrParams);
 
@@ -100,6 +135,31 @@ public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
                 String mnFilterString = "nodeId:"+SolrSearchHandlerUtil.escapeQueryChars(memberNodeId);
                 MultiMapSolrParams.addParam(CommonParams.FQ, mnFilterString,
                         convertedSolrParams);
+                
     }
-    
+
+  public static void  replaceParam(String name, String val, Map<String,String[]> map) {
+
+      String[] arr =new String[]{val};
+      map.put(name, arr);
+
+  }
+  public static void  removeParamValue(String name, String val, Map<String,String[]> map) {
+
+      if (map.containsKey(name)) {
+        String[] arr = map.get(name);
+        ArrayList<String> redactFromList =  new ArrayList<String>(Arrays.asList(arr));
+        ArrayList<String> redactFullEntryList =  new ArrayList<String>();
+        for (int i = 0; i < redactFromList.size(); ++i ) {
+            if (redactFromList.get(i).contains(val)){
+                redactFullEntryList.add(redactFromList.get(i));
+            }
+        }
+        if (redactFromList.removeAll(redactFullEntryList)) {
+
+            map.put(name, redactFromList.toArray(new String[0]));
+        }
+
+      }
+  }
 }

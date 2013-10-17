@@ -70,7 +70,7 @@ public class SolrSearchHandlerUtil {
             isAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
         }
         convertedSolrParams.remove(ParameterKeys.AUTHORIZED_SUBJECTS);
-        if (notAdministrator(isAdministrator)) {
+        if (isInvalidSolrParam(isAdministrator)) {
             logger.debug("not an administrative user");
             String[] authorizedSubjects = solrParams.getParams(ParameterKeys.AUTHORIZED_SUBJECTS);
             if ((authorizedSubjects != null) && (authorizedSubjects.length > 0)) {
@@ -106,6 +106,7 @@ public class SolrSearchHandlerUtil {
                         + readFqValue.toString());
                 MultiMapSolrParams.addParam(CommonParams.FQ, readFqValue.toString(),
                         convertedSolrParams);
+             
 
             } else {
                 logger.debug("found a public user");
@@ -113,7 +114,7 @@ public class SolrSearchHandlerUtil {
                         convertedSolrParams);
             }
         } else {
-            if (!isAdministrator(isAdministrator)) {
+            if (!isValidSolrParam(isAdministrator)) {
                 MultiMapSolrParams.addParam(CommonParams.FQ, publicFilterString,
                         convertedSolrParams);
                 logger.warn("an invalid administrative user got passed initial verification in SessionAuthorizationFilter admin token: "
@@ -122,18 +123,16 @@ public class SolrSearchHandlerUtil {
         }
     }
 
-    public static boolean isAdministrator(String[] isAdministrator) {
-        // we need to check the value of the isAdministrator param value
+    public static boolean isValidSolrParam(String[] solrParam) {
+        // we need to check the value of administrator and authenticated user param value
         //
-        // the isAdministrator param value should be set by a property
+        // the param values should be set by a property
         // not readable by the public, in order to ensure that
-        // a request HTTP QUERY does not attempt to gain administrative
+        // a request HTTP QUERY does not attempt to gain 
         // access by spoofing the parameter
 
-        // if the cnAdministratorToken is not set in a properties file
-        // then do not allow administrative access
-        return ((isAdministrator != null) && (isAdministrator.length > 0) && StringUtils
-                .isNotEmpty(isAdministrator[0]));
+        return ((solrParam != null) && (solrParam.length > 0) && StringUtils
+                .isNotEmpty(solrParam[0]));
     }
 
     public static boolean isCNAdministrator(String[] isAdministrator) {
@@ -151,10 +150,10 @@ public class SolrSearchHandlerUtil {
                     .equals(isAdministrator[0]));
     }
 
-    private static boolean notAdministrator(String[] isAdministrator) {
-        // if the isAdministrator value of the solrParams is not
-        // set or is of 0 length, then do not allow administrative access
-        return ((isAdministrator == null) || (isAdministrator.length == 0));
+    private static boolean isInvalidSolrParam(String[] solrParam) {
+        // if the solr param value of the solrParams is not
+        // set or is of 0 length, then return true
+        return ((solrParam == null) || (solrParam.length == 0));
     }
 
     public static void logSolrParameters(HashMap<String, String[]> convertedSolrParams) {
