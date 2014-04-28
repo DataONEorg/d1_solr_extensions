@@ -111,12 +111,14 @@ public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
                 removeParamValue(FacetParams.FACET_FIELD, "userAgent", convertedSolrParams); 
                 removeParamValue(FacetParams.FACET_FIELD, "readPermission", convertedSolrParams);
                 removeParamValue(FacetParams.FACET_FIELD, "subject", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_FIELD, "rightsHolder", convertedSolrParams);
             }
             if (convertedSolrParams.containsKey(FacetParams.FACET_QUERY)) {
                 removeParamValue(FacetParams.FACET_QUERY, "ipAddress", convertedSolrParams);       
                 removeParamValue(FacetParams.FACET_QUERY, "userAgent", convertedSolrParams); 
                 removeParamValue(FacetParams.FACET_QUERY, "readPermission", convertedSolrParams);
                 removeParamValue(FacetParams.FACET_QUERY, "subject", convertedSolrParams);
+                removeParamsValue(FacetParams.FACET_QUERY, "rightsHolder", covertedSolrParams);
             }
             if (convertedSolrParams.containsKey(FacetParams.FACET_PREFIX)) {
                 convertedSolrParams.remove(FacetParams.FACET_PREFIX);
