@@ -21,17 +21,13 @@
  */
 package org.dataone.solr.response;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Writer;
 
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.response.QueryResponseWriter;
 import org.apache.solr.response.SolrQueryResponse;
-import org.dataone.service.types.v1_1.QueryEngineDescription;
-import org.dataone.service.util.TypeMarshaller;
-import org.jibx.runtime.JiBXException;
+import org.dataone.solr.handler.LogSolrQueryEngineDescriptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,45 +38,21 @@ import org.slf4j.LoggerFactory;
  * @author slaughter
  * 
  */
-public class QueryEngineDescriptionResponseWriter implements QueryResponseWriter {
+public class LogSolrQueryEngineDescriptionReponseWriter extends QueryEngineDescriptionResponseWriter {
 
-    private String D1_XSLT = null;
-    private String responseKey;
+    private static final String D1_XSLT = "/cn/xslt/dataone.types.v1.xsl";
     private static Logger logger = LoggerFactory
-            .getLogger(QueryEngineDescriptionResponseWriter.class);
+            .getLogger(LogSolrQueryEngineDescriptionReponseWriter.class);
 
-
-	protected void setD1_XSLT(String D1_XSLT) {
-		this.D1_XSLT = D1_XSLT;
-	}
-	
-	protected void setResponseKey(String responseKey) {
-		this.responseKey = responseKey;
-	}
-	
+    public LogSolrQueryEngineDescriptionReponseWriter() {
+    	super.setD1_XSLT(D1_XSLT);
+    	super.setResponseKey(LogSolrQueryEngineDescriptionHandler.RESPONSE_KEY);
+    }
+    
     @Override
     public void write(Writer writer, SolrQueryRequest request, SolrQueryResponse response)
             throws IOException {
-
-        QueryEngineDescription qed = (QueryEngineDescription) response.getValues().get(
-                this.responseKey);
-        writeQueryEngineDescription(qed, writer);
-    }
-
-    private void writeQueryEngineDescription(QueryEngineDescription qed, Writer writer) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        try {
-            TypeMarshaller.marshalTypeToOutputStream(qed, os, D1_XSLT);
-        } catch (JiBXException jibxEx) {
-            logger.error(jibxEx.getMessage(), jibxEx);
-        } catch (IOException ioEx) {
-            logger.error(ioEx.getMessage(), ioEx);
-        }
-        try {
-            writer.write(os.toString("UTF-8"));
-        } catch (IOException e) {
-            logger.error(e.getMessage(), e);
-        }
+    	super.write(writer, request, response);
     }
 
     @Override
