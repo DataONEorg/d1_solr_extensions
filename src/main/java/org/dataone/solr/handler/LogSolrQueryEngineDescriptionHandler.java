@@ -30,7 +30,7 @@ public  class LogSolrQueryEngineDescriptionHandler extends QueryEngineDescriptio
     private final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
     private final String DESCRIPTION_PATH = "/etc/dataone/event-index/eventIndexQueryFieldDescriptions.properties";
     private final String SCHEMA_VERSION_PROPERTY = "schema-version=";
-    public final String RESPONSE_KEY = "LogSolrQueryEngineDescription";
+    public static final String RESPONSE_KEY = "LogSolrQueryEngineDescription";
     private final String QUERY_ENGINE_NAME = "logsolr";
 
     private Logger logger = LoggerFactory.getLogger(LogSolrQueryEngineDescriptionHandler.class);
