@@ -48,20 +48,4 @@ public class SolrQueryEngineDescriptionResponseWriter extends QueryEngineDescrip
     	super.setD1_XSLT(D1_XSLT);
     	super.setResponseKey(SolrQueryEngineDescriptionHandler.RESPONSE_KEY);
     }
-    
-    @Override
-    public void write(Writer writer, SolrQueryRequest request, SolrQueryResponse response)
-            throws IOException {
-    	super.write(writer, request, response);
-    }
-
-    @Override
-    public void init(NamedList args) {
-        // NO-OP
-    }
-
-    @Override
-    public String getContentType(SolrQueryRequest request, SolrQueryResponse response) {
-        return CONTENT_TYPE_XML_UTF8;
-    }
 }

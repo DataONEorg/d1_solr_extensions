@@ -87,7 +87,6 @@ public abstract class QueryEngineDescriptionHandler extends RequestHandlerBase i
 
     private QueryEngineDescription qed = null;
     private Map<String, String> fieldDescriptions = null;
-
     private static Logger logger = LoggerFactory.getLogger(SolrQueryEngineDescriptionHandler.class);
 
     public QueryEngineDescriptionHandler() {

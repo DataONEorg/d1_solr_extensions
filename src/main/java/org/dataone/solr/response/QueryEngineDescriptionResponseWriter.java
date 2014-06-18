@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * @author slaughter
  * 
  */
-public class QueryEngineDescriptionResponseWriter implements QueryResponseWriter {
+public abstract class QueryEngineDescriptionResponseWriter implements QueryResponseWriter {
 
     private String D1_XSLT = null;
     private String responseKey;

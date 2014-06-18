@@ -21,93 +21,26 @@
  */
 package org.dataone.solr.handler;
 
-import java.net.URL;
-
-import org.apache.solr.core.SolrCore;
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.response.SolrQueryResponse;
-import org.dataone.service.types.v1_1.QueryEngineDescription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SolrQueryEngineDescriptionHandler extends QueryEngineDescriptionHandler {
 
-    private static final String NAME = "solr";
-    // default value - will be set by inform()
-    private String solrVersion = "";
-    // default value - will be set by inform()
-    private String schemaVersion = "";
+    private final String additionalInfo = "http://mule1.dataone.org/ArchitectureDocs-current/design/SearchMetadata.html";
+    private final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
+    private final String DESCRIPTION_PATH = "/etc/dataone/index/solr/queryFieldDescriptions.properties";
+    private final String SCHEMA_VERSION_PROPERTY = "schema-version=";
+    public  final String RESPONSE_KEY = "queryEngineDescription";
+    private final String QUERY_ENGINE_NAME = "solr";
 
-    private String additionalInfo = "http://mule1.dataone.org/ArchitectureDocs-current/design/SearchMetadata.html";
-    private static final String SCHEMA_PROPERTIES_PATH = "/etc/dataone/index/solr/schema.properties";
-    private static final String DESCRIPTION_PATH = "/etc/dataone/index/solr/queryFieldDescriptions.properties";
-    private static final String SCHEMA_VERSION_PROPERTY = "schema-version=";
-    public static final String RESPONSE_KEY = "queryEngineDescription";
-
-    private static Logger logger = LoggerFactory.getLogger(SolrQueryEngineDescriptionHandler.class);
+    private Logger logger = LoggerFactory.getLogger(SolrQueryEngineDescriptionHandler.class);
 
     public SolrQueryEngineDescriptionHandler () {
     	super.setAdditionalInfo(additionalInfo);
-    	super.setSchemaProperitesPath(SCHEMA_PROPERTIES_PATH);
     	super.setDescriptionPath(DESCRIPTION_PATH);
-    	super.setDescriptionPath(SCHEMA_VERSION_PROPERTY);
-    	super.setQueryEngineName(NAME);
+    	super.setSchemaProperitesPath(SCHEMA_PROPERTIES_PATH);
+    	super.setSchemaVersionProperty(SCHEMA_VERSION_PROPERTY);
     	super.setResponseKey(RESPONSE_KEY);
-    }
-
-    @Override
-    public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) {
-    	super.handleRequestBody(req, rsp);
-    }
-
-    @Override
-    public void inform(SolrCore core) {
-    	super.inform(core);
-    }
-
-    @Override
-    public void setAdditionalInfo(QueryEngineDescription qed) {
-    	super.setAdditionalInfo(qed);
-    }
-
-    /**
-     * Based on org.apache.solr.handler.admin.SystemInfoHandler.getLuceneInfo()
-     */
-    public void setSolrVersion(QueryEngineDescription qed) {
-    	super.setSolrVersion(qed);
-    }
-
-    public void setSchemaVersionFromPropertiesFile(QueryEngineDescription qed) {
-    	super.setSchemaVersionFromPropertiesFile(qed);
-    }
-
-    public void loadSchemaFieldDescriptions() {
-    	super.loadSchemaFieldDescriptions();
-    }
-
-    // ////////////////////// SolrInfoMBeans methods //////////////////////
-    @Override
-    public String getDescription() {
-        return "LogSolr Query Engine Description Handler.";
-    }
-
-    @Override
-    public String getVersion() {
-        return "Version 1.0";
-    }
-
-    @Override
-    public String getSourceId() {
-        return "LogSolrQueryEngineDescriptionHandler.java";
-    }
-
-    @Override
-    public String getSource() {
-    	return super.getSource();
-    }
-
-    @Override
-    public URL[] getDocs() {
-    	return super.getDocs();
+    	super.setQueryEngineName(QUERY_ENGINE_NAME);
     }
 }
