@@ -38,13 +38,13 @@ import org.slf4j.LoggerFactory;
  * @author slaughter
  * 
  */
-public class LogSolrQueryEngineDescriptionReponseWriter extends QueryEngineDescriptionResponseWriter {
+public class LogSolrQueryEngineDescriptionResponseWriter extends QueryEngineDescriptionResponseWriter {
 
     private static final String D1_XSLT = "/cn/xslt/dataone.types.v1.xsl";
     private static Logger logger = LoggerFactory
-            .getLogger(LogSolrQueryEngineDescriptionReponseWriter.class);
+            .getLogger(LogSolrQueryEngineDescriptionResponseWriter.class);
 
-    public LogSolrQueryEngineDescriptionReponseWriter() {
+    public LogSolrQueryEngineDescriptionResponseWriter() {
     	super.setD1_XSLT(D1_XSLT);
     	super.setResponseKey(LogSolrQueryEngineDescriptionHandler.RESPONSE_KEY);
     }
