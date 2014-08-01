@@ -32,7 +32,7 @@ import org.apache.commons.logging.LogFactory;
 import org.dataone.client.auth.CertificateManager;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
-import org.dataone.service.cn.impl.v1.CNIdentityLDAPImpl;
+import org.dataone.service.cn.impl.v2.CNIdentityLDAPImpl;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotFound;
 import org.dataone.service.exceptions.NotImplemented;
