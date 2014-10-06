@@ -66,6 +66,19 @@ public class SessionAuthorizationUtil {
         fc.doFilter(proxyRequest, response);
     }
 
+    /**
+     * Adds the additional SubjectInfo subject strings (Standardized to rfc2253 format if possible) 
+     * to the request under the parameter defined at org.dataone.cn.servlet.http.ParameterKeys.AUTHORIZED_SUBJECTS
+     * 
+     * the SubjectInfo is acquired from the IdentityService, and falls back to those passed in with the Session.
+     * 
+     * @param proxyRequest
+     * @param session
+     * @param authorizedSubject
+     * @throws ServiceFailure
+     * @throws NotAuthorized
+     * @throws NotImplemented
+     */
     public static void addAuthenticatedSubjectsToRequest(ProxyServletRequestWrapper proxyRequest,
             Session session, Subject authorizedSubject) throws ServiceFailure, NotAuthorized,
             NotImplemented {
@@ -89,9 +102,14 @@ public class SessionAuthorizationUtil {
             authorizedSubjectInfo = session.getSubjectInfo();
         }
         if (authorizedSubjectInfo == null) {
-            String standardizedName = CertificateManager.getInstance().standardizeDN(
-                    authorizedSubject.getValue());
-            authorizedSubjects.add(standardizedName);
+            try {
+            	String standardizedName = CertificateManager.getInstance().standardizeDN(
+            			authorizedSubject.getValue());
+            	authorizedSubjects.add(standardizedName);
+            } catch (IllegalArgumentException ex) {
+                logger.warn("the passed-in authorized Subject " + authorizedSubject.getValue() + "was not a typical DN-style one that could be standardized.\n" + ex.getMessage());
+                authorizedSubjects.add(authorizedSubject.getValue());
+            }
         } else {
             Set<Subject> subjectSet = new HashSet<Subject>();
             AuthUtils.findPersonsSubjects(subjectSet, authorizedSubjectInfo, authorizedSubject);
@@ -100,9 +118,14 @@ public class SessionAuthorizationUtil {
                     if (Constants.SUBJECT_VERIFIED_USER.equals(subject.getValue())) {
                         authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
                     } else {
-                        String standardizedName = CertificateManager.getInstance().standardizeDN(
+                        try {
+                        	String standardizedName = CertificateManager.getInstance().standardizeDN(
                                 subject.getValue());
-                        authorizedSubjects.add(standardizedName);
+                        	authorizedSubjects.add(standardizedName);
+                        } catch (IllegalArgumentException ex) {
+                        	// add it anyway - It's a non-standard subject from a mapped identity
+                        	authorizedSubjects.add(authorizedSubject.getValue());
+                        }
                     }
                 }
             }
