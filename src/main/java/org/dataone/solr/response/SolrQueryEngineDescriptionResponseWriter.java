@@ -21,12 +21,6 @@
  */
 package org.dataone.solr.response;
 
-import java.io.IOException;
-import java.io.Writer;
-
-import org.apache.solr.common.util.NamedList;
-import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.response.SolrQueryResponse;
 import org.dataone.solr.handler.SolrQueryEngineDescriptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +39,7 @@ public class SolrQueryEngineDescriptionResponseWriter extends QueryEngineDescrip
             .getLogger(SolrQueryEngineDescriptionResponseWriter.class);
 
     public SolrQueryEngineDescriptionResponseWriter() {
-    	super.setD1_XSLT(D1_XSLT);
-    	super.setResponseKey(SolrQueryEngineDescriptionHandler.RESPONSE_KEY);
+        super.setD1_XSLT(D1_XSLT);
+        super.setResponseKey(SolrQueryEngineDescriptionHandler.RESPONSE_KEY);
     }
 }
