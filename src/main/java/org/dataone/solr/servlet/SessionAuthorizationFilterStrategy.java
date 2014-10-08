@@ -251,6 +251,8 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 handleNoCertificateManagerSession(proxyRequest, response, fc);
             }
         } catch (ServiceFailure ex) {
+            logger.error("ServiceFailure exception: ", ex);
+            ex.printStackTrace();
             ex.setDetail_code("1490");
             String failure = ex.serialize(BaseException.FMT_XML);
             ((HttpServletResponse) response).setStatus(500);
@@ -279,6 +281,8 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             response.getOutputStream().flush();
             response.getOutputStream().close();
         } catch (Exception ex) {
+            logger.error("Generic exception: ", ex);
+            ex.printStackTrace();
         	ServiceFailure sfe = new ServiceFailure("1490", ex.getClass() + ": "+ ex.getMessage());
     		sfe.setStackTrace(ex.getStackTrace());
             String failure = sfe.serialize(BaseException.FMT_XML);
