@@ -8,7 +8,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <solr.version>3.4.0</solr.version>
-        <bouncycastle.version>1.46</bouncycastle.version>
+        <bouncycastle.version>1.52</bouncycastle.version>
         <d1_libclient_version>2.0.0-SNAPSHOT</d1_libclient_version>
         <d1_cn_common_version>2.0.0-SNAPSHOT</d1_cn_common_version>
         <d1_identity_manager_version>2.0.0-SNAPSHOT</d1_identity_manager_version>
@@ -268,15 +268,8 @@
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>${bouncycastle.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
             <artifactId>bcmail-jdk15on</artifactId>
             <version>${bouncycastle.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
