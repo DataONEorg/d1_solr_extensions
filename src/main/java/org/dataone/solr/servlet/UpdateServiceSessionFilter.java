@@ -35,7 +35,7 @@ public class UpdateServiceSessionFilter implements Filter {
         logger.warn("Logging Request Body for URL: " + uri + ": ");
         logger.warn(body);
 
-        filterChain.doFilter(request, response);
+        filterChain.doFilter(requestWrapper, response);
 
     }
 
