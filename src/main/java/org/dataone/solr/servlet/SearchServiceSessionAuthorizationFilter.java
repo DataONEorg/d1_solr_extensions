@@ -22,9 +22,7 @@ import java.io.IOException;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -56,22 +54,6 @@ public class SearchServiceSessionAuthorizationFilter extends SessionAuthorizatio
 
     protected String getServiceMethodName() {
         return "search";
-    }
-
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc)
-            throws IOException, ServletException {
-
-        RequestBodyHttpServletRequestWrapper requestWrapper = new RequestBodyHttpServletRequestWrapper(
-                (HttpServletRequest) request);
-
-        String body = requestWrapper.getBody();
-        String uri = requestWrapper.getRequestURI();
-
-        logger.warn("Logging Request Body for URL: " + uri + ": ");
-        logger.warn(body);
-
-        super.doFilter(request, response, fc);
     }
 
 }
