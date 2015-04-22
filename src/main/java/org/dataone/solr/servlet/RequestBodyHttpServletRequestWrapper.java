@@ -23,15 +23,23 @@ public class RequestBodyHttpServletRequestWrapper extends HttpServletRequestWrap
 
         super(request);
 
-        logger.warn("Reqest char encoding is: " + request.getCharacterEncoding());
+        if (request == null) {
+            logger.warn("Request is null");
+        }
 
         StringBuilder stringBuilder = new StringBuilder("");
         BufferedReader bufferedReader = null;
         try {
             InputStream inputStream = request.getInputStream();
             if (inputStream != null) {
-                bufferedReader = new BufferedReader(new InputStreamReader(inputStream,
-                        request.getCharacterEncoding()));
+                if (request.getCharacterEncoding() != null) {
+                    logger.warn("Request char encoding is: " + request.getCharacterEncoding());
+                    bufferedReader = new BufferedReader(new InputStreamReader(inputStream,
+                            request.getCharacterEncoding()));
+                } else {
+                    logger.warn("Request char encoding is null, using utf-8");
+                    bufferedReader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+                }
                 char[] charBuffer = new char[128];
                 int bytesRead = -1;
                 while ((bytesRead = bufferedReader.read(charBuffer)) > 0) {
