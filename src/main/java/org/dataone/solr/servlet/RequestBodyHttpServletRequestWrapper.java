@@ -63,11 +63,11 @@ public class RequestBodyHttpServletRequestWrapper extends HttpServletRequestWrap
     @Override
     public ServletInputStream getInputStream() throws IOException {
 
-        // final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
-        //       requestBody.getBytes("UTF-8"));
-
         final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
-                requestBody.getBytes());
+                requestBody.getBytes("UTF-8"));
+
+        //        final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
+        //                requestBody.getBytes());
 
         ServletInputStream servletInputStream = new ServletInputStream() {
             public int read() throws IOException {
@@ -80,8 +80,8 @@ public class RequestBodyHttpServletRequestWrapper extends HttpServletRequestWrap
 
     @Override
     public BufferedReader getReader() throws IOException {
-        //        return new BufferedReader(new InputStreamReader(this.getInputStream(), "UTF-8"));
-        return new BufferedReader(new InputStreamReader(this.getInputStream()));
+        return new BufferedReader(new InputStreamReader(this.getInputStream(), "UTF-8"));
+        //return new BufferedReader(new InputStreamReader(this.getInputStream()));
     }
 
     public String getBody() {

@@ -29,13 +29,13 @@ public class UpdateServiceSessionFilter implements Filter {
         RequestBodyHttpServletRequestWrapper requestWrapper = new RequestBodyHttpServletRequestWrapper(
                 (HttpServletRequest) request);
 
+        filterChain.doFilter(requestWrapper, response);
+
         String body = requestWrapper.getBody();
         String uri = requestWrapper.getRequestURI();
 
         logger.warn("Logging Request Body for URL: " + uri + ": ");
         logger.warn(body);
-
-        filterChain.doFilter(requestWrapper, response);
 
     }
 
