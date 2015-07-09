@@ -113,7 +113,6 @@
                                     <exclude>org.slf4j</exclude>
                                     <exclude>xml-apis</exclude>
                                     <exclude>javax.servlet</exclude>
-                                    <exclude>org.bouncycastle</exclude>
                                 </excludes>
                             </artifactSet>
 
