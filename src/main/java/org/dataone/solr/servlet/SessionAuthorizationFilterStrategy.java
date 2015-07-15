@@ -194,7 +194,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             }
             // check if we have the certificate (session) already
             Session session = PortalCertificateManager.getInstance()
-                    .registerPortalCertificateAndPlaceOnRequest((HttpServletRequest) request);
+                    .getSession((HttpServletRequest) request);
             if (session != null) {
                 // we have a authenticated user, maybe an administrator or
                 if (isTimeForRefresh()) {
