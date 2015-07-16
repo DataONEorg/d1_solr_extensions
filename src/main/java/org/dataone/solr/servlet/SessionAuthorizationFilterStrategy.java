@@ -271,13 +271,6 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
-        } catch (InvalidToken ex) {
-            ex.setDetail_code("1470");
-            String failure = ex.serialize(BaseException.FMT_XML);
-            ((HttpServletResponse) response).setStatus(401);
-            response.getOutputStream().write(failure.getBytes());
-            response.getOutputStream().flush();
-            response.getOutputStream().close();
         } catch (Exception ex) {
         	ServiceFailure sfe = new ServiceFailure("1490", ex.getClass() + ": "+ ex.getMessage());
     		sfe.setStackTrace(ex.getStackTrace());
