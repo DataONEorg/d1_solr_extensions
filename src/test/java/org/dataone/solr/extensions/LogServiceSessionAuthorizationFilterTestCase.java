@@ -38,9 +38,9 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.dataone.client.auth.CertificateManager;
 import org.dataone.cn.auth.X509CertificateGenerator;
 import org.dataone.cn.ldap.v1.NodeLdapPopulation;
@@ -142,8 +142,8 @@ public class LogServiceSessionAuthorizationFilterTestCase {
         assertTrue("response is not empty", responseWrapper.getBufferSize() == 0);
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length == 0);
 
-//        assertThat("response should contain NotAuthorized", content,
-//                containsString("NotAuthorized"));
+        //        assertThat("response should contain NotAuthorized", content,
+        //                containsString("NotAuthorized"));
 
         // assertTrue("response should be null", responseWrapper.getBufferSize()
         // == 0);
@@ -171,8 +171,8 @@ public class LogServiceSessionAuthorizationFilterTestCase {
         assertTrue("response is not empty", responseWrapper.getBufferSize() == 0);
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length == 0);
 
-//        assertThat("response should contain NotAuthorized", content,
-//                containsString("NotAuthorized"));
+        //        assertThat("response should contain NotAuthorized", content,
+        //                containsString("NotAuthorized"));
         // examine contents of the response
         // assertTrue("response should be null", responseWrapper.getBufferSize()
         // == 0);
@@ -199,10 +199,10 @@ public class LogServiceSessionAuthorizationFilterTestCase {
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length > 0);
 
         String content = new String(responseWrapper.getBuffer());
-//        assertThat("response should contain NotAuthorized", content,
-//                containsString("NotAuthorized"));
-       assertThat("response should contain " + primarySubject, content,
-       containsString(primarySubject));
+        //        assertThat("response should contain NotAuthorized", content,
+        //                containsString("NotAuthorized"));
+        assertThat("response should contain " + primarySubject, content,
+                containsString(primarySubject));
     }
 
     // pass in a token that has administrative permission
@@ -219,7 +219,6 @@ public class LogServiceSessionAuthorizationFilterTestCase {
         // examine contents of the response
         assertTrue("response is not empty", responseWrapper.getBufferSize() > 0);
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length > 0);
-        
 
         String content = new String(responseWrapper.getBuffer());
         log.info(content);

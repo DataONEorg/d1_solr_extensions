@@ -48,9 +48,10 @@ import org.dataone.service.types.v1_1.QueryField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class QueryEngineDescriptionHandler extends RequestHandlerBase implements SolrCoreAware {
+public abstract class QueryEngineDescriptionHandler extends RequestHandlerBase implements
+        SolrCoreAware {
 
-	private String additionalInfo = null;
+    private String additionalInfo = null;
     private String queryEngineName = null;
     // default value - will be set by inform()
     private String schemaVersion = null;
@@ -60,31 +61,6 @@ public abstract class QueryEngineDescriptionHandler extends RequestHandlerBase i
     private String schemaVersionProperty = null;
     private String responseKey = null;
     private String schemaPropertiesPath = null;
- 
-    protected void setAdditionalInfo(String additionalInfo) {
-    	this.additionalInfo = additionalInfo;
-    }
-    
-	protected void setDescriptionPath(String descriptionPath) {
-	    this.descriptionPath = descriptionPath;
-	}
-	
-	protected void setSchemaProperitesPath(String schemaPropertiesPath) {
-		this.schemaPropertiesPath = schemaPropertiesPath;
-	}
-		
-	protected void setSchemaVersionProperty(String schemaVersionProperty) {
-	    this.schemaVersionProperty = schemaVersionProperty;
-	}
-	
-	protected void setResponseKey(String responseKey) {
-		this.responseKey = responseKey;
-	}
-	
-	protected void setQueryEngineName(String queryEngineName) {
-		this.queryEngineName = queryEngineName;
-	}
-
     private QueryEngineDescription qed = null;
     private Map<String, String> fieldDescriptions = null;
     private static Logger logger = LoggerFactory.getLogger(SolrQueryEngineDescriptionHandler.class);
@@ -92,7 +68,7 @@ public abstract class QueryEngineDescriptionHandler extends RequestHandlerBase i
     public QueryEngineDescriptionHandler() {
     }
 
-    @Override 
+    @Override
     public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) {
         rsp.add(responseKey, qed);
     }
@@ -106,7 +82,7 @@ public abstract class QueryEngineDescriptionHandler extends RequestHandlerBase i
         setSolrVersion(qed);
         setAdditionalInfo(qed);
 
-        IndexSchema schema = core.getSchema();
+        IndexSchema schema = core.getLatestSchema();
         Map<String, SchemaField> fieldMap = schema.getFields();
         for (SchemaField schemaField : fieldMap.values()) {
             qed.addQueryField(createQueryFieldFromSchemaField(schemaField, this.fieldDescriptions));
@@ -185,6 +161,30 @@ public abstract class QueryEngineDescriptionHandler extends RequestHandlerBase i
         }
     }
 
+    protected void setAdditionalInfo(String additionalInfo) {
+        this.additionalInfo = additionalInfo;
+    }
+
+    protected void setDescriptionPath(String descriptionPath) {
+        this.descriptionPath = descriptionPath;
+    }
+
+    protected void setSchemaProperitesPath(String schemaPropertiesPath) {
+        this.schemaPropertiesPath = schemaPropertiesPath;
+    }
+
+    protected void setSchemaVersionProperty(String schemaVersionProperty) {
+        this.schemaVersionProperty = schemaVersionProperty;
+    }
+
+    protected void setResponseKey(String responseKey) {
+        this.responseKey = responseKey;
+    }
+
+    protected void setQueryEngineName(String queryEngineName) {
+        this.queryEngineName = queryEngineName;
+    }
+
     // ////////////////////// SolrInfoMBeans methods //////////////////////
     @Override
     public String getDescription() {
@@ -194,11 +194,6 @@ public abstract class QueryEngineDescriptionHandler extends RequestHandlerBase i
     @Override
     public String getVersion() {
         return "Version 1.0";
-    }
-
-    @Override
-    public String getSourceId() {
-        return "SolrQueryEngineDescriptionHandler.java";
     }
 
     @Override

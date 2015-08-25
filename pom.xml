@@ -7,7 +7,7 @@
     <name>DataONE_Solr_Extensions</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <solr.version>3.4.0</solr.version>
+        <solr.version>5.2.1</solr.version>
         <bouncycastle.version>1.52</bouncycastle.version>
         <d1_libclient_version>2.0.0-SNAPSHOT</d1_libclient_version>
         <d1_cn_common_version>2.0.0-SNAPSHOT</d1_cn_common_version>
@@ -317,6 +317,22 @@
             <version>${d1_portal_version}</version>
             <type>jar</type>
         </dependency>
+
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.3.3</version>
+		</dependency>        
+		 <dependency>
+		  <groupId>xerces</groupId>
+		  <artifactId>xercesImpl</artifactId>
+		  <version>2.9.1</version>
+		</dependency>        
+		<dependency>
+			<groupId>commons-beanutils</groupId>
+			<artifactId>commons-beanutils</artifactId>
+			<version>1.8.3</version>
+		</dependency>        
     </dependencies>
     <scm>
         <url>https://repository.dataone.org/software/cicore</url>

@@ -23,14 +23,13 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.lucene.queryParser.ParseException;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.request.SolrRequestHandler;
 import org.apache.solr.response.SolrQueryResponse;
-import org.apache.solr.util.plugin.SolrCoreAware;
 
 /**
  * Custom Solr SearchHandler to provide DataONE security filtering behavior.
@@ -39,7 +38,7 @@ import org.apache.solr.util.plugin.SolrCoreAware;
  * @author sroseboo
  * 
  */
-public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
+public class SolrSearchHandler extends SearchHandler implements SolrRequestHandler {
 
     private static final String READ_PERMISSION_FIELD = "readPermission";
     private static final String RIGHTS_HOLDER_FIELD = "rightsHolder";
@@ -55,9 +54,11 @@ public class SolrSearchHandler extends SearchHandler implements SolrCoreAware {
 
     private static Log logger = LogFactory.getLog(SolrSearchHandler.class);
 
-    @Override
+    public SolrSearchHandler() {
+    }
+
     public void handleRequestBody(SolrQueryRequest request, SolrQueryResponse response)
-            throws Exception, ParseException, InstantiationException, IllegalAccessException {
+            throws Exception, InstantiationException, IllegalAccessException {
         // have to reset the parameters , so create a new parameters map
         // copy original params, add new params, set new param map in
         // SolrQueryRequest

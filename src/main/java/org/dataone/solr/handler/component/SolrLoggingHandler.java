@@ -21,15 +21,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
 
-import org.apache.lucene.queryParser.ParseException;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
+import org.apache.solr.request.SolrRequestHandler;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.util.plugin.SolrCoreAware;
 import org.dataone.cn.servlet.http.ParameterKeys;
@@ -44,10 +43,11 @@ import org.slf4j.LoggerFactory;
  * 
  * @author waltz
  */
-public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
+public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware, SolrRequestHandler {
 
     private static final String READ_PERMISSION_FIELD = "readPermission";
     private static Logger logger = LoggerFactory.getLogger(SolrLoggingHandler.class);
+
     /**
      * Handles a query request
      * 
@@ -69,20 +69,23 @@ public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
      */
     @Override
     public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception,
-            ParseException, InstantiationException, IllegalAccessException {
+            InstantiationException, IllegalAccessException {
         // have to reset the parameters , so create a new parameters map
         // copy original params, add new params, set new param map in
         // SolrQueryRequest
 
         SolrParams solrParams = req.getParams();
         HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
-                    .getConvertedParameters(solrParams);
+                .getConvertedParameters(solrParams);
         String[] isMNAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
         String[] isCNAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
         String[] authorizedSubjects = solrParams.getParams(ParameterKeys.AUTHORIZED_SUBJECTS);
 
-        if ( SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator) || SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator) || SolrSearchHandlerUtil.isValidSolrParam(authorizedSubjects) ) {
-            if (SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator) && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
+        if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator)
+                || SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator)
+                || SolrSearchHandlerUtil.isValidSolrParam(authorizedSubjects)) {
+            if (SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator)
+                    && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
                 throw new NotAuthorized("1460", "Invalid Coordinating Node token");
             }
             SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
@@ -90,11 +93,13 @@ public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
             SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(solrParams,
                     convertedSolrParams, READ_PERMISSION_FIELD);
 
-            if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator) && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
-                applyMNAdministratorRestriction(solrParams, convertedSolrParams, isMNAdministrator[0]);
+            if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator)
+                    && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
+                applyMNAdministratorRestriction(solrParams, convertedSolrParams,
+                        isMNAdministrator[0]);
             }
         } else {
-            
+
             // Task #3886: Filter the d1-cn-log index based on a public role
             //this is a non-authorized user call. just return summary information and
             //redact sensitive columns from facets
@@ -107,13 +112,13 @@ public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
 
             replaceParam(CommonParams.ROWS, "0", convertedSolrParams);
             if (convertedSolrParams.containsKey(FacetParams.FACET_FIELD)) {
-                removeParamValue(FacetParams.FACET_FIELD, "ipAddress", convertedSolrParams);       
+                removeParamValue(FacetParams.FACET_FIELD, "ipAddress", convertedSolrParams);
                 removeParamValue(FacetParams.FACET_FIELD, "readPermission", convertedSolrParams);
                 removeParamValue(FacetParams.FACET_FIELD, "subject", convertedSolrParams);
                 removeParamValue(FacetParams.FACET_FIELD, "rightsHolder", convertedSolrParams);
             }
             if (convertedSolrParams.containsKey(FacetParams.FACET_QUERY)) {
-                removeParamValue(FacetParams.FACET_QUERY, "ipAddress", convertedSolrParams);       
+                removeParamValue(FacetParams.FACET_QUERY, "ipAddress", convertedSolrParams);
                 removeParamValue(FacetParams.FACET_QUERY, "readPermission", convertedSolrParams);
                 removeParamValue(FacetParams.FACET_QUERY, "subject", convertedSolrParams);
                 removeParamValue(FacetParams.FACET_QUERY, "rightsHolder", convertedSolrParams);
@@ -128,38 +133,38 @@ public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware {
 
         super.handleRequestBody(req, rsp);
     }
-    
+
     private void applyMNAdministratorRestriction(SolrParams solrParams,
             HashMap<String, String[]> convertedSolrParams, String memberNodeId) {
-                        logger.debug("found an Membernode user");
-                String mnFilterString = "nodeId:"+SolrSearchHandlerUtil.escapeQueryChars(memberNodeId);
-                MultiMapSolrParams.addParam(CommonParams.FQ, mnFilterString,
-                        convertedSolrParams);
-                
+        logger.debug("found an Membernode user");
+        String mnFilterString = "nodeId:" + SolrSearchHandlerUtil.escapeQueryChars(memberNodeId);
+        MultiMapSolrParams.addParam(CommonParams.FQ, mnFilterString, convertedSolrParams);
+
     }
 
-  public static void  replaceParam(String name, String val, Map<String,String[]> map) {
+    public static void replaceParam(String name, String val, Map<String, String[]> map) {
 
-      String[] arr =new String[]{val};
-      map.put(name, arr);
+        String[] arr = new String[] { val };
+        map.put(name, arr);
 
-  }
-  public static void  removeParamValue(String name, String val, Map<String,String[]> map) {
+    }
 
-      if (map.containsKey(name)) {
-        String[] arr = map.get(name);
-        ArrayList<String> redactFromList =  new ArrayList<String>(Arrays.asList(arr));
-        ArrayList<String> redactFullEntryList =  new ArrayList<String>();
-        for (int i = 0; i < redactFromList.size(); ++i ) {
-            if (redactFromList.get(i).contains(val)){
-                redactFullEntryList.add(redactFromList.get(i));
+    public static void removeParamValue(String name, String val, Map<String, String[]> map) {
+
+        if (map.containsKey(name)) {
+            String[] arr = map.get(name);
+            ArrayList<String> redactFromList = new ArrayList<String>(Arrays.asList(arr));
+            ArrayList<String> redactFullEntryList = new ArrayList<String>();
+            for (int i = 0; i < redactFromList.size(); ++i) {
+                if (redactFromList.get(i).contains(val)) {
+                    redactFullEntryList.add(redactFromList.get(i));
+                }
             }
-        }
-        if (redactFromList.removeAll(redactFullEntryList)) {
+            if (redactFromList.removeAll(redactFullEntryList)) {
 
-            map.put(name, redactFromList.toArray(new String[0]));
-        }
+                map.put(name, redactFromList.toArray(new String[0]));
+            }
 
-      }
-  }
+        }
+    }
 }

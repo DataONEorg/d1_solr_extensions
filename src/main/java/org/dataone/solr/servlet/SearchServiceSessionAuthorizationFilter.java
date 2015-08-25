@@ -24,6 +24,8 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletResponse;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotImplemented;
@@ -33,6 +35,8 @@ import org.dataone.service.types.v1.Subject;
 
 public class SearchServiceSessionAuthorizationFilter extends SessionAuthorizationFilterStrategy
         implements Filter {
+
+    protected static Log logger = LogFactory.getLog(SearchServiceSessionAuthorizationFilter.class);
 
     protected void handleNoCertificateManagerSession(ProxyServletRequestWrapper proxyRequest,
             ServletResponse response, FilterChain fc) throws ServletException, IOException,
@@ -51,5 +55,4 @@ public class SearchServiceSessionAuthorizationFilter extends SessionAuthorizatio
     protected String getServiceMethodName() {
         return "search";
     }
-
 }
