@@ -332,7 +332,19 @@
 			<groupId>commons-beanutils</groupId>
 			<artifactId>commons-beanutils</artifactId>
 			<version>1.8.3</version>
-		</dependency>        
+		</dependency>     
+		<dependency>
+		    <groupId>.org.slf4j</groupId>
+		    <artifactId>slf4j-api</artifactId>
+		    <version>1.7.7</version>
+		    <scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>.org.slf4j</groupId>
+		    <artifactId>slf4j-log4j12</artifactId>
+		    <version>1.7.7</version>
+		    <scope>provided</scope>
+		</dependency>  
     </dependencies>
     <scm>
         <url>https://repository.dataone.org/software/cicore</url>
