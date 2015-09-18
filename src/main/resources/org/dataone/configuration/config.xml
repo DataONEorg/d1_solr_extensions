@@ -5,8 +5,6 @@
     <result delimiterParsingDisabled="true" forceReloadCheck="true" />
   </header>
     <properties fileName="file:/etc/dataone/node.properties">
-        <reloadingStrategy refreshDelay="5000"
-            config-class="org.apache.commons.configuration.reloading.FileChangedReloadingStrategy"/>
     </properties>
     <properties fileName="file:/etc/dataone/ldapService.properties"/>
     <properties fileName="registryLdap.properties"/>
