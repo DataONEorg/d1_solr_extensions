@@ -110,7 +110,7 @@
                                     <exclude>commons-codec</exclude>
                                     <exclude>commons-io</exclude>
                                     <exclude>commons-fileupload</exclude>
-                                    <exclude>org.slf4j</exclude>
+                                  <!--   <exclude>org.slf4j</exclude>   -->
                                     <exclude>xml-apis</exclude>
                                     <exclude>javax.servlet</exclude>
                                 </excludes>
@@ -338,18 +338,18 @@
             <artifactId>commons-configuration</artifactId>
             <version>1.7</version>
         </dependency>
+        
 		<dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-api</artifactId>
 		    <version>1.7.7</version>
-		    <scope>provided</scope>
 		</dependency>
 		<dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-log4j12</artifactId>
 		    <version>1.7.7</version>
-		    <scope>provided</scope>
 		</dependency> 
+		<!-- 
 		<dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-api</artifactId>
@@ -361,7 +361,8 @@
 		    <artifactId>slf4j-log4j12</artifactId>
 		    <version>1.7.5</version>
 		    <scope>provided</scope>
-		</dependency> 
+		</dependency>
+		 --> 
     </dependencies>
     <scm>
         <url>https://repository.dataone.org/software/cicore</url>
