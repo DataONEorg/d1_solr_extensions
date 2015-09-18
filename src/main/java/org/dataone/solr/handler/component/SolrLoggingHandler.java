@@ -28,9 +28,7 @@ import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
-import org.apache.solr.request.SolrRequestHandler;
 import org.apache.solr.response.SolrQueryResponse;
-import org.apache.solr.util.plugin.SolrCoreAware;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.slf4j.Logger;
@@ -43,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author waltz
  */
-public class SolrLoggingHandler extends SearchHandler implements SolrCoreAware, SolrRequestHandler {
+public class SolrLoggingHandler extends SearchHandler {
 
     private static final String READ_PERMISSION_FIELD = "readPermission";
     private static Logger logger = LoggerFactory.getLogger(SolrLoggingHandler.class);
