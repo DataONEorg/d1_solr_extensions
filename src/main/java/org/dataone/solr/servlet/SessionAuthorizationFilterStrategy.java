@@ -19,6 +19,7 @@ package org.dataone.solr.servlet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -172,6 +173,17 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             throws IOException, ServletException {
         logger.debug("SessionAuthorizationFilterStrategy doFilter invoked by: "
                 + this.getClass().getName());
+        
+        // debug session issues
+        if (request instanceof  HttpServletRequest) {
+            HttpServletRequest requestHeaders = (HttpServletRequest) request;
+             List<String> names = Collections.list(requestHeaders.getHeaderNames());
+             for (String name :names) {
+                  
+                 logger.debug("header: " + name + " = " + requestHeaders.getHeader(name));
+             }
+        }
+       
         try {
             String[] emptyValues = {};
             ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper(
