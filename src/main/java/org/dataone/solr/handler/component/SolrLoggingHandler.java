@@ -31,8 +31,8 @@ import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.service.exceptions.NotAuthorized;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Extends the Solr SearchHandler to add in filters based on whether or not a
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 public class SolrLoggingHandler extends SearchHandler {
 
     private static final String READ_PERMISSION_FIELD = "readPermission";
-    private static Logger logger = LoggerFactory.getLogger(SolrLoggingHandler.class);
+    private static Log logger = LogFactory.getLog(SolrLoggingHandler.class);
 
     /**
      * Handles a query request
