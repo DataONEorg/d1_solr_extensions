@@ -172,23 +172,24 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 String[] emptyValues = {};
                 ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper(
                         (HttpServletRequest) request);
+
+                Map proxyMap = proxyRequest.getParameterMap();
+                if (proxyMap.containsKey(ParameterKeys.AUTHORIZED_SUBJECTS)) {
+                    // clear out any unwanted attempts at hacking
+                    logger.debug("removing attempt at supplying authorized user by client");
+                    proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS, emptyValues);
+                }
+                if (proxyMap.containsKey(ParameterKeys.IS_CN_ADMINISTRATOR)) {
+                    // clear out any unwanted attempts at hacking
+                    logger.debug("removing attempt at supplying authorized administrative user by client");
+                    proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, emptyValues);
+                }
+                if (proxyMap.containsKey(ParameterKeys.IS_MN_ADMINISTRATOR)) {
+                    // clear out any unwanted attempts at hacking
+                    logger.debug("removing attempt at supplying authorized administrative user by client");
+                    proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR, emptyValues);
+                }
                 if (SessionAuthorizationUtil.validateSSLAttributes(proxyRequest)) {
-                    Map proxyMap = proxyRequest.getParameterMap();
-                    if (proxyMap.containsKey(ParameterKeys.AUTHORIZED_SUBJECTS)) {
-                        // clear out any unwanted attempts at hacking
-                        logger.debug("removing attempt at supplying authorized user by client");
-                        proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS, emptyValues);
-                    }
-                    if (proxyMap.containsKey(ParameterKeys.IS_CN_ADMINISTRATOR)) {
-                        // clear out any unwanted attempts at hacking
-                        logger.debug("removing attempt at supplying authorized administrative user by client");
-                        proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, emptyValues);
-                    }
-                    if (proxyMap.containsKey(ParameterKeys.IS_MN_ADMINISTRATOR)) {
-                        // clear out any unwanted attempts at hacking
-                        logger.debug("removing attempt at supplying authorized administrative user by client");
-                        proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR, emptyValues);
-                    }
                     // check if we have the certificate (session) already
                     Session session = PortalCertificateManager.getInstance()
                             .getSession((HttpServletRequest) request);
@@ -215,7 +216,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                         // restrict based on the user permissions
                         if (cnAdministrativeSubjects.contains(authorizedSubject)) {
                             // set administrative access
-                            logger.debug( authorizedSubject.getValue() + " is a cn administrator");
+                            logger.debug(authorizedSubject.getValue() + " is a cn administrator");
                             String[] isAdministrativeSubjectValue = {adminToken};
                             proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
                                     isAdministrativeSubjectValue);
@@ -224,7 +225,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                                 List<Subject> mnSubjectList = mnNodeNameToSubjectsMap.get(mnIdentifier);
                                 if (mnSubjectList != null && mnSubjectList.contains(authorizedSubject)) {
                                     String[] mnAdministratorParamValue = {mnIdentifier};
-                                    logger.debug( authorizedSubject.getValue() + " is a mn administrator");
+                                    logger.debug(authorizedSubject.getValue() + " is a mn administrator");
                                     proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR,
                                             mnAdministratorParamValue);
                                 }
@@ -240,7 +241,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                                     handleNoCertificateManagerSession(proxyRequest, response, fc);
                                 }
                             } else {
-                                logger.debug( authorizedSubject.getValue() + " is authorized");
+                                logger.debug(authorizedSubject.getValue() + " is authorized");
                                 addAuthenticatedSubjectsToRequest(proxyRequest, session, authorizedSubject);
                             }
                         }
