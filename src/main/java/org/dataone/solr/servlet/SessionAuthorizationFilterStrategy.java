@@ -55,13 +55,12 @@ import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 
 /**
- * Strategy for a pre-filter to SolrDispatchFilter. The strategy defines how to
- * set authorization information in a wrapped request's parameter map
- * 
- * A DataONE SolrRequestHandler implementation can then create a filter based on
- * the parameters, since SolrRequestHandler does not have access to the request
- * attributes where the session is stored
- * 
+ * Strategy for a pre-filter to SolrDispatchFilter. The strategy defines how to set authorization information in a
+ * wrapped request's parameter map
+ *
+ * A DataONE SolrRequestHandler implementation can then create a filter based on the parameters, since
+ * SolrRequestHandler does not have access to the request attributes where the session is stored
+ *
  * @author waltz
  */
 public abstract class SessionAuthorizationFilterStrategy implements Filter {
@@ -80,12 +79,11 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L; // 5 minutes
 
     /**
-     * Allows concrete implementations of SessionAuthorizationFilterStrategy to
-     * determine what access (if any) to allow requests that do have session
-     * information available from the dataONE CertificateManager.
-     * 
+     * Allows concrete implementations of SessionAuthorizationFilterStrategy to determine what access (if any) to allow
+     * requests that do have session information available from the dataONE CertificateManager.
+     *
      * Called from doFilter
-     * 
+     *
      * @param proxyRequest
      * @param response
      * @param filterChain
@@ -98,13 +96,12 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             FilterChain filterChain) throws ServletException, IOException, NotAuthorized;
 
     /**
-     * Allows concrete implementations of SessionAuthorizationFilterStrategy to
-     * determine how/what authenticated subjects are added to the request's
-     * parameter values - ParameterKeys.AUTHORIZED_SUBJECTS, as well as if
-     * public user and authenticated user constants are provided.
-     * 
+     * Allows concrete implementations of SessionAuthorizationFilterStrategy to determine how/what authenticated
+     * subjects are added to the request's parameter values - ParameterKeys.AUTHORIZED_SUBJECTS, as well as if public
+     * user and authenticated user constants are provided.
+     *
      * Called from doFilter
-     * 
+     *
      * @param proxyRequest
      * @param session
      * @param authorizedSubject
@@ -117,16 +114,15 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             throws ServiceFailure, NotAuthorized, NotImplemented;
 
     /**
-     * The service name to look up for additional admin users defined for the
-     * services service method restrictions.
-     * 
+     * The service name to look up for additional admin users defined for the services service method restrictions.
+     *
      * @return Name of service.
      */
     protected abstract String getServiceMethodName();
 
     /**
      * Initialize the filter by pre-caching a list of administrative subjects
-     * 
+     *
      * @param fc
      * @throws ServletException
      * @author waltz
@@ -146,20 +142,17 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     }
 
     /**
-     * The strategy method that defines how and what subjects are added to the
-     * request's parameter values.
-     * 
-     * If the session has a certificate, determine the authorized subjects by
-     * pulling a subjectInfo from LDAP. Set the subjects in a parameter named
-     * authorizedSubjects.
-     * 
-     * 
-     * The certificate may also be from a CN. If so, set the isCnAdministrator
-     * param to a token.
-     * 
-     * If the request does not have either authorizedSubjects or
-     * isCnAdministrator, then it should be considered a public request
-     * 
+     * The strategy method that defines how and what subjects are added to the request's parameter values.
+     *
+     * If the session has a certificate, determine the authorized subjects by pulling a subjectInfo from LDAP. Set the
+     * subjects in a parameter named authorizedSubjects.
+     *
+     *
+     * The certificate may also be from a CN. If so, set the isCnAdministrator param to a token.
+     *
+     * If the request does not have either authorizedSubjects or isCnAdministrator, then it should be considered a
+     * public request
+     *
      * @author waltz
      * @param request
      * @param response
@@ -173,95 +166,97 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             throws IOException, ServletException {
         logger.debug("SessionAuthorizationFilterStrategy doFilter invoked by: "
                 + this.getClass().getName());
-        
-        // debug session issues
-        if (request instanceof  HttpServletRequest) {
-            HttpServletRequest requestHeaders = (HttpServletRequest) request;
-             List<String> names = Collections.list(requestHeaders.getHeaderNames());
-             for (String name :names) {
-                  
-                 logger.debug("header: " + name + " = " + requestHeaders.getHeader(name));
-             }
-        }
-       
+
         try {
-            String[] emptyValues = {};
-            ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper(
-                    (HttpServletRequest) request);
-            Map proxyMap = proxyRequest.getParameterMap();
-            if (proxyMap.containsKey(ParameterKeys.AUTHORIZED_SUBJECTS)) {
-                // clear out any unwanted attempts at hacking
-                logger.debug("removing attempt at supplying authorized user by client");
-                proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS, emptyValues);
-            }
-            if (proxyMap.containsKey(ParameterKeys.IS_CN_ADMINISTRATOR)) {
-                // clear out any unwanted attempts at hacking
-                logger.debug("removing attempt at supplying authorized administrative user by client");
-                proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, emptyValues);
-            }
-            if (proxyMap.containsKey(ParameterKeys.IS_MN_ADMINISTRATOR)) {
-                // clear out any unwanted attempts at hacking
-                logger.debug("removing attempt at supplying authorized administrative user by client");
-                proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR, emptyValues);
-            }
-            // check if we have the certificate (session) already
-            Session session = PortalCertificateManager.getInstance()
-                    .getSession((HttpServletRequest) request);
-            if (session != null) {
-                // we have a authenticated user, maybe an administrator or
-                if (isTimeForRefresh()) {
-                    cacheAdministrativeSubjectList();
-                }
-                Subject authorizedSubject = session.getSubject();
-                logger.debug("Solr Session Auth found subject: " + authorizedSubject.getValue());
-
-                // The subject may be a CN or a CN administrator, in which case
-                // authorization is granted for full access to records
-                // The subject may be a MN, in which case, depending on the
-                // service,
-                // the records may be filtered in some way...
-                //
-                // For some unknown reason, the endpoint may allow access to
-                // certain subjects
-                // in which case, access is restricted to only those subjects on
-                // the list
-                //
-                // Lastly, the subject may be a valid authorized subject, so
-                // restrict based on the user permissions
-
-                if (cnAdministrativeSubjects.contains(authorizedSubject)) {
-                    // set administrative access
-                    String[] isAdministrativeSubjectValue = { adminToken };
-                    proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
-                            isAdministrativeSubjectValue);
-                } else if (mnAdministrativeSubjects.contains(authorizedSubject)) {
-                    for (String mnIdentifier : mnNodeNameToSubjectsMap.keySet()) {
-                        List<Subject> mnSubjectList = mnNodeNameToSubjectsMap.get(mnIdentifier);
-                        if (mnSubjectList != null && mnSubjectList.contains(authorizedSubject)) {
-                            String[] mnAdministratorParamValue = { mnIdentifier };
-                            proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR,
-                                    mnAdministratorParamValue);
+            if (request instanceof HttpServletRequest) {
+                String[] emptyValues = {};
+                ProxyServletRequestWrapper proxyRequest = new ProxyServletRequestWrapper(
+                        (HttpServletRequest) request);
+                if (SessionAuthorizationUtil.validateSSLAttributes(proxyRequest)) {
+                    Map proxyMap = proxyRequest.getParameterMap();
+                    if (proxyMap.containsKey(ParameterKeys.AUTHORIZED_SUBJECTS)) {
+                        // clear out any unwanted attempts at hacking
+                        logger.debug("removing attempt at supplying authorized user by client");
+                        proxyRequest.setParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS, emptyValues);
+                    }
+                    if (proxyMap.containsKey(ParameterKeys.IS_CN_ADMINISTRATOR)) {
+                        // clear out any unwanted attempts at hacking
+                        logger.debug("removing attempt at supplying authorized administrative user by client");
+                        proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, emptyValues);
+                    }
+                    if (proxyMap.containsKey(ParameterKeys.IS_MN_ADMINISTRATOR)) {
+                        // clear out any unwanted attempts at hacking
+                        logger.debug("removing attempt at supplying authorized administrative user by client");
+                        proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR, emptyValues);
+                    }
+                    // check if we have the certificate (session) already
+                    Session session = PortalCertificateManager.getInstance()
+                            .getSession((HttpServletRequest) request);
+                    if (session != null) {
+                        // we have a authenticated user, maybe an administrator or
+                        if (isTimeForRefresh()) {
+                            cacheAdministrativeSubjectList();
                         }
+                        Subject authorizedSubject = session.getSubject();
+                        logger.debug("Solr Session Auth found subject: " + authorizedSubject.getValue());
+
+                        // The subject may be a CN or a CN administrator, in which case
+                        // authorization is granted for full access to records
+                        // The subject may be a MN, in which case, depending on the
+                        // service,
+                        // the records may be filtered in some way...
+                        //
+                        // For some unknown reason, the endpoint may allow access to
+                        // certain subjects
+                        // in which case, access is restricted to only those subjects on
+                        // the list
+                        //
+                        // Lastly, the subject may be a valid authorized subject, so
+                        // restrict based on the user permissions
+                        if (cnAdministrativeSubjects.contains(authorizedSubject)) {
+                            // set administrative access
+                            logger.debug( authorizedSubject.getValue() + " is a cn administrator");
+                            String[] isAdministrativeSubjectValue = {adminToken};
+                            proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
+                                    isAdministrativeSubjectValue);
+                        } else if (mnAdministrativeSubjects.contains(authorizedSubject)) {
+                            for (String mnIdentifier : mnNodeNameToSubjectsMap.keySet()) {
+                                List<Subject> mnSubjectList = mnNodeNameToSubjectsMap.get(mnIdentifier);
+                                if (mnSubjectList != null && mnSubjectList.contains(authorizedSubject)) {
+                                    String[] mnAdministratorParamValue = {mnIdentifier};
+                                    logger.debug( authorizedSubject.getValue() + " is a mn administrator");
+                                    proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR,
+                                            mnAdministratorParamValue);
+                                }
+                            }
+                        } else {
+                            if (!serviceMethodRestrictionSubjects.isEmpty()) {
+                                if (serviceMethodRestrictionSubjects.contains(authorizedSubject)) {
+                                    addAuthenticatedSubjectsToRequest(proxyRequest, session,
+                                            authorizedSubject);
+                                } else {
+                                    logger.debug("Solr Session auth - " + authorizedSubject.getValue()
+                                            + " not found in restricted list");
+                                    handleNoCertificateManagerSession(proxyRequest, response, fc);
+                                }
+                            } else {
+                                logger.debug( authorizedSubject.getValue() + " is authorized");
+                                addAuthenticatedSubjectsToRequest(proxyRequest, session, authorizedSubject);
+                            }
+                        }
+                        fc.doFilter(proxyRequest, response);
+                    } else {
+                        logger.debug("Solr Session auth - NO SESSION");
+                        handleNoCertificateManagerSession(proxyRequest, response, fc);
                     }
                 } else {
-                    if (!serviceMethodRestrictionSubjects.isEmpty()) {
-                        if (serviceMethodRestrictionSubjects.contains(authorizedSubject)) {
-                            addAuthenticatedSubjectsToRequest(proxyRequest, session,
-                                    authorizedSubject);
-                        } else {
-                            logger.debug("Solr Session auth - " + authorizedSubject.getValue()
-                                    + " not found in restricted list");
-                            handleNoCertificateManagerSession(proxyRequest, response, fc);
-                        }
-                    } else {
-                        addAuthenticatedSubjectsToRequest(proxyRequest, session, authorizedSubject);
-                    }
+                    logger.debug("Invalidate SSL Attributes");
+                    handleNoCertificateManagerSession(proxyRequest, response, fc);
                 }
-                fc.doFilter(proxyRequest, response);
             } else {
-                logger.debug("Solr Session auth - NO SESSION");
-                handleNoCertificateManagerSession(proxyRequest, response, fc);
+                throw new NotImplemented("1461", "ServletRequest is not a HttpServletRequest!?");
             }
+
         } catch (ServiceFailure ex) {
             ex.setDetail_code("1490");
             String failure = ex.serialize(BaseException.FMT_XML);
@@ -284,14 +279,14 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             response.getOutputStream().flush();
             response.getOutputStream().close();
         } catch (Exception ex) {
-        	ServiceFailure sfe = new ServiceFailure("1490", ex.getClass() + ": "+ ex.getMessage());
-    		sfe.setStackTrace(ex.getStackTrace());
+            ServiceFailure sfe = new ServiceFailure("1490", ex.getClass() + ": " + ex.getMessage());
+            sfe.setStackTrace(ex.getStackTrace());
             String failure = sfe.serialize(BaseException.FMT_XML);
             ((HttpServletResponse) response).setStatus(500);
             response.getOutputStream().write(failure.getBytes());
             response.getOutputStream().flush();
             response.getOutputStream().close();
-        } 
+        }
     }
 
     /*
@@ -313,7 +308,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         List<String> nodeAdministrators = Settings.getConfiguration().getList("cn.administrators");
         if (nodeAdministrators != null) {
             for (String administrator : nodeAdministrators) {
-                logger.debug("AdminList entry " + administrator);
+                logger.debug("AdminList property entry " + administrator);
                 Subject adminSubject = new Subject();
                 adminSubject.setValue(administrator);
                 cnAdministrativeSubjects.add(adminSubject);
@@ -322,6 +317,9 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         List<Node> nodeList = nodeRegistryService.listNodes().getNodeList();
         for (Node node : nodeList) {
             if (node.getType().equals(NodeType.CN) && node.getState().equals(NodeState.UP)) {
+                for (Subject subject : node.getSubjectList()) {
+                    logger.debug("AdminList entry CN subject: " + subject.getValue());
+                }
                 cnAdministrativeSubjects.addAll(node.getSubjectList());
                 List<Service> cnServices = node.getServices().getServiceList();
                 for (Service service : cnServices) {
@@ -334,8 +332,10 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                                 if (serviceMethodRestriction.getMethodName().equalsIgnoreCase(
                                         getServiceMethodName())) {
                                     if (serviceMethodRestriction.getSubjectList() != null) {
-                                        serviceMethodRestrictionSubjects
-                                                .addAll(serviceMethodRestriction.getSubjectList());
+                                        serviceMethodRestrictionSubjects.addAll(serviceMethodRestriction.getSubjectList());
+                                        for (Subject subject : serviceMethodRestriction.getSubjectList()) {
+                                            logger.debug("AdminList entry CN subject: " + subject.getValue());
+                                        }
                                     }
                                 }
                             }
@@ -348,16 +348,18 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                     mnAdministrativeSubjects.addAll(node.getSubjectList());
                     mnNodeNameToSubjectsMap.put(node.getIdentifier().getValue(),
                             node.getSubjectList());
+                    for (Subject subject : node.getSubjectList()) {
+                        logger.debug("AdminList entry CN subject: " + subject.getValue());
+                    }
                 }
             }
         }
     }
 
     /**
-     * determines if it is time to refresh the AdministrativeSubjectList derived
-     * from nodelist information cache. The refresh interval helps to minimize
-     * unnecessary access to LDAP.
-     * 
+     * determines if it is time to refresh the AdministrativeSubjectList derived from nodelist information cache. The
+     * refresh interval helps to minimize unnecessary access to LDAP.
+     *
      * @author waltz
      * @return boolean. true if time to refresh
      */
