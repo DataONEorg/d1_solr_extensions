@@ -220,6 +220,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                             String[] isAdministrativeSubjectValue = {adminToken};
                             proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
                                     isAdministrativeSubjectValue);
+                            proxyRequest.setQueryString(proxyRequest.getQueryString() + "&" + ParameterKeys.IS_CN_ADMINISTRATOR + "=" + isAdministrativeSubjectValue);
                         } else if (mnAdministrativeSubjects.contains(authorizedSubject)) {
                             for (String mnIdentifier : mnNodeNameToSubjectsMap.keySet()) {
                                 List<Subject> mnSubjectList = mnNodeNameToSubjectsMap.get(mnIdentifier);
