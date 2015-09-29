@@ -71,8 +71,9 @@ public class SolrLoggingHandler extends SearchHandler {
         // have to reset the parameters , so create a new parameters map
         // copy original params, add new params, set new param map in
         // SolrQueryRequest
-
-        SolrParams solrParams = req.getOriginalParams();
+        
+        SolrParams solrParams = req.getParams();
+        SolrSearchHandlerUtil.logSolrParameters(solrParams);
         HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
                 .getConvertedParameters(solrParams);
         String[] isMNAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
