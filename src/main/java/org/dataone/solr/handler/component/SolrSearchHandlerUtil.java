@@ -192,6 +192,7 @@ public class SolrSearchHandlerUtil {
         HashMap<String, String[]> map = new HashMap<String, String[]>();
         for (int i = 0; i < params.size(); i++) {
             String name = params.getName(i);
+            logger.debug(name);
             Object value = params.getVal(i);
             if (value instanceof String[]) {
                 for (String val : (String[]) value) {
