@@ -78,7 +78,7 @@ public class SolrLoggingHandler extends SearchHandler {
         String[] isMNAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
         String[] isCNAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
         String[] authorizedSubjects = solrParams.getParams(ParameterKeys.AUTHORIZED_SUBJECTS);
-
+        SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
         if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator)
                 || SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator)
                 || SolrSearchHandlerUtil.isValidSolrParam(authorizedSubjects)) {
@@ -86,8 +86,8 @@ public class SolrLoggingHandler extends SearchHandler {
                     && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
                 throw new NotAuthorized("1460", "Invalid Coordinating Node token");
             }
-            SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
-
+            
+            logger.debug("found an Valid authorized user mn? " + isMNAdministrator + " cn? " + isCNAdministrator + " is authsubject? " + authorizedSubjects);
             SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(solrParams,
                     convertedSolrParams, READ_PERMISSION_FIELD);
 
