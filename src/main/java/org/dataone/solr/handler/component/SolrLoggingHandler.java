@@ -33,7 +33,8 @@ import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.dataone.service.exceptions.ServiceFailure;
+import javax.servlet.http.HttpServletRequest;
 /**
  * Extends the Solr SearchHandler to add in filters based on whether or not a
  * user has been authenticated, and if authenticated, then whether or not the
@@ -71,14 +72,24 @@ public class SolrLoggingHandler extends SearchHandler {
         // have to reset the parameters , so create a new parameters map
         // copy original params, add new params, set new param map in
         // SolrQueryRequest
+        HttpServletRequest httpServletRequest = null;
+        if (req.getContext().containsValue(SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY)) {
+            httpServletRequest = (HttpServletRequest)req.getContext().get(SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY);
+            if (httpServletRequest == null) {
+                throw new ServiceFailure("1490", "Solr misconfigured. Context should have the request");
+            }
+        } else {
+            throw new ServiceFailure("1490", "Solr misconfigured. Context should have the request");
+        }
+
+ 
+        String[] isMNAdministrator = httpServletRequest.getParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR);
+        String[] isCNAdministrator = httpServletRequest.getParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR);
+        String[] authorizedSubjects = httpServletRequest.getParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS);
+
         
-        SolrParams solrParams = req.getParams();
+        HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil.getConvertedParameters(req.getParams());
         
-        HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
-                .getConvertedParameters(solrParams);
-        String[] isMNAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
-        String[] isCNAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
-        String[] authorizedSubjects = solrParams.getParams(ParameterKeys.AUTHORIZED_SUBJECTS);
         SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
         if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator)
                 || SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator)
@@ -89,12 +100,12 @@ public class SolrLoggingHandler extends SearchHandler {
             }
             
             logger.debug("found an Valid authorized user mn? " + isMNAdministrator + " cn? " + isCNAdministrator + " is authsubject? " + authorizedSubjects);
-            SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(solrParams,
+            SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(httpServletRequest,
                     convertedSolrParams, READ_PERMISSION_FIELD);
 
             if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator)
                     && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
-                applyMNAdministratorRestriction(solrParams, convertedSolrParams,
+                applyMNAdministratorRestriction(convertedSolrParams,
                         isMNAdministrator[0]);
             }
         } else {
@@ -133,8 +144,7 @@ public class SolrLoggingHandler extends SearchHandler {
         super.handleRequestBody(req, rsp);
     }
 
-    private void applyMNAdministratorRestriction(SolrParams solrParams,
-            HashMap<String, String[]> convertedSolrParams, String memberNodeId) {
+    private void applyMNAdministratorRestriction(HashMap<String, String[]> convertedSolrParams, String memberNodeId) {
         logger.debug("found an Membernode user");
         String mnFilterString = "nodeId:" + SolrSearchHandlerUtil.escapeQueryChars(memberNodeId);
         MultiMapSolrParams.addParam(CommonParams.FQ, mnFilterString, convertedSolrParams);

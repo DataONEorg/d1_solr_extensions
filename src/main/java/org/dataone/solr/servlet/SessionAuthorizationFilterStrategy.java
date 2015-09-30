@@ -218,9 +218,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                             // set administrative access
                             logger.debug(authorizedSubject.getValue() + " is a cn administrator");
                             String[] isAdministrativeSubjectValue = {adminToken};
-                            proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
-                                    isAdministrativeSubjectValue);
-                            proxyRequest.setQueryString(proxyRequest.getQueryString() + "&" + ParameterKeys.IS_CN_ADMINISTRATOR + "=" + isAdministrativeSubjectValue);
+                            proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR, isAdministrativeSubjectValue);
                         } else if (mnAdministrativeSubjects.contains(authorizedSubject)) {
                             for (String mnIdentifier : mnNodeNameToSubjectsMap.keySet()) {
                                 List<Subject> mnSubjectList = mnNodeNameToSubjectsMap.get(mnIdentifier);
@@ -228,7 +226,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                                     String[] mnAdministratorParamValue = {mnIdentifier};
                                     logger.debug(authorizedSubject.getValue() + " is a mn administrator");
                                     proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR,
-                                            mnAdministratorParamValue);
+                                            mnAdministratorParamValue); 
                                 }
                             }
                         } else {

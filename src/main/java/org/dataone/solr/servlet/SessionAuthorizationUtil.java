@@ -175,6 +175,14 @@ public class SessionAuthorizationUtil {
         }
     }
 
+    /**
+     * Create the java ssl attributes needed for dataone authorization by reading headers.
+     * The headers are populated by apache before rewrite and proxy
+     * 
+     * @param request
+     * @return boolean
+     *
+    */
     public static boolean validateSSLAttributes(ProxyServletRequestWrapper request) {
         List<String> attributeNames = Collections.list(request.getAttributeNames());
         boolean rtn = false;

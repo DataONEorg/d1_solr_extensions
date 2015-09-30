@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -52,27 +53,32 @@ public class SolrSearchHandlerUtil {
     private static String publicFilterString = "isPublic:true";
     private static String cnAdministratorToken = Settings.getConfiguration().getString(
             "cn.solrAdministrator.token");
-
-    public static void applyReadRestrictionQueryFilterParameters(SolrParams solrParams,
+    //
+    // this string is found in org.apache.solr.servlet.SolrRequestParsers, is is hardcoded and 
+    // not publically available from what I can find
+    //
+    public static final String CONTEXT_HTTP_REQUEST_KEY = "httpRequest";
+    
+    public static void applyReadRestrictionQueryFilterParameters(HttpServletRequest httpServletRequest,
             HashMap<String, String[]> convertedSolrParams, String readField) {
         List<String> readFields = new ArrayList<String>();
         readFields.add(readField);
-        applyReadRestrictionQueryFilterParameters(solrParams, convertedSolrParams, readFields);
+        applyReadRestrictionQueryFilterParameters(httpServletRequest, convertedSolrParams, readFields);
     }
 
-    public static void applyReadRestrictionQueryFilterParameters(SolrParams solrParams,
+    public static void applyReadRestrictionQueryFilterParameters(HttpServletRequest httpServletRequest,
             HashMap<String, String[]> convertedSolrParams, List<String> readFields) {
 
-        String[] isAdministrator = solrParams.getParams(ParameterKeys.IS_CN_ADMINISTRATOR);
+        String[] isAdministrator = httpServletRequest.getParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR);
         if ((isAdministrator == null) || (isAdministrator.length == 0)) {
             // might be a membernode, and depending on the implemenation this
             // may have consequences
-            isAdministrator = solrParams.getParams(ParameterKeys.IS_MN_ADMINISTRATOR);
+            isAdministrator = httpServletRequest.getParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR);
         }
         convertedSolrParams.remove(ParameterKeys.AUTHORIZED_SUBJECTS);
         if (isInvalidSolrParam(isAdministrator)) {
             logger.debug("not an administrative user");
-            String[] authorizedSubjects = solrParams.getParams(ParameterKeys.AUTHORIZED_SUBJECTS);
+            String[] authorizedSubjects = httpServletRequest.getParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS);
             if ((authorizedSubjects != null) && (authorizedSubjects.length > 0)) {
                 logger.debug("found an authorized user");
                 ArrayList<String> authorizedSubjectList = new ArrayList<String>();
