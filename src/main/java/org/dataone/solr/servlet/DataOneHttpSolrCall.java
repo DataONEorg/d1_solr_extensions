@@ -28,7 +28,6 @@ public class DataOneHttpSolrCall extends HttpSolrCall {
         solrReq.getContext().put("webapp", req.getContextPath());
         logger.debug("Adding httpRequest to solrQueryResponse context.");
         solrReq.getContext().put("httpRequest", req);
-        solrReq.getContext().put("foobar", req);
         solrReq.getCore().execute(handler, solrReq, rsp);
     }
 

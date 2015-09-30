@@ -20,13 +20,13 @@ package org.dataone.solr.handler.component;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
-import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.request.SolrRequestHandler;
@@ -65,16 +65,19 @@ public class SolrSearchHandler extends SearchHandler implements SolrRequestHandl
         // copy original params, add new params, set new param map in
         // SolrQueryRequest
         HttpServletRequest httpServletRequest = null;
-        if (request.getContext().containsValue(SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY)) {
-            httpServletRequest = (HttpServletRequest)request.getContext().get(SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY);
+        if (request.getContext().containsKey(SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY)) {
+            httpServletRequest = (HttpServletRequest) request.getContext().get(
+                    SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY);
             if (httpServletRequest == null) {
-                throw new ServiceFailure("1490", "Solr misconfigured. Context should have the request");
+                throw new ServiceFailure("1490",
+                        "Solr misconfigured. Context should have the request");
             }
         } else {
             throw new ServiceFailure("4310", "Solr misconfigured. Context should have the request");
         }
- 
-        HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil.getConvertedParameters(request.getParams());
+
+        HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
+                .getConvertedParameters(request.getParams());
 
         convertedSolrParams.remove("d1-pc");
 

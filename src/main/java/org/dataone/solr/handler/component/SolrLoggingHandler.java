@@ -81,7 +81,7 @@ public class SolrLoggingHandler extends SearchHandler {
             logger.debug("key: " + key.toString());
         }
 
-        if (req.getContext().containsValue(SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY)) {
+        if (req.getContext().containsKey(SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY)) {
             httpServletRequest = (HttpServletRequest) req.getContext().get(
                     SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY);
             if (httpServletRequest == null) {
