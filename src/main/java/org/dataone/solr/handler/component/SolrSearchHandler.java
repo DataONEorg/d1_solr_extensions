@@ -69,10 +69,12 @@ public class SolrSearchHandler extends SearchHandler implements SolrRequestHandl
             httpServletRequest = (HttpServletRequest) request.getContext().get(
                     SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY);
             if (httpServletRequest == null) {
+                SolrSearchHandlerUtil.logSolrContext(request);
                 throw new ServiceFailure("1490",
                         "Solr misconfigured. Context should have the request");
             }
         } else {
+            SolrSearchHandlerUtil.logSolrContext(request);
             throw new ServiceFailure("4310", "Solr misconfigured. Context should have the request");
         }
 

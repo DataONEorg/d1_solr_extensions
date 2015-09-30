@@ -20,11 +20,11 @@ package org.dataone.solr.handler.component;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.solr.common.params.CommonParams;
@@ -75,20 +75,16 @@ public class SolrLoggingHandler extends SearchHandler {
         // SolrQueryRequest
         HttpServletRequest httpServletRequest = null;
 
-        logger.debug("req.getContext keys:");
-        for (Iterator iterator = req.getContext().keySet().iterator(); iterator.hasNext();) {
-            Object key = iterator.next();
-            logger.debug("key: " + key.toString());
-        }
-
         if (req.getContext().containsKey(SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY)) {
             httpServletRequest = (HttpServletRequest) req.getContext().get(
                     SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY);
             if (httpServletRequest == null) {
+                SolrSearchHandlerUtil.logSolrContext(req);
                 throw new ServiceFailure("1490",
                         "Solr misconfigured. Context should have the request");
             }
         } else {
+            SolrSearchHandlerUtil.logSolrContext(req);
             throw new ServiceFailure("1490", "Solr misconfigured. Context should have the request");
         }
 
@@ -106,13 +102,17 @@ public class SolrLoggingHandler extends SearchHandler {
         if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator)
                 || SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator)
                 || SolrSearchHandlerUtil.isValidSolrParam(authorizedSubjects)) {
+
             if (SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator)
                     && !SolrSearchHandlerUtil.isCNAdministrator(isCNAdministrator)) {
                 throw new NotAuthorized("1460", "Invalid Coordinating Node token");
             }
 
-            logger.debug("found an Valid authorized user mn? " + isMNAdministrator + " cn? "
-                    + isCNAdministrator + " is authsubject? " + authorizedSubjects);
+            logger.debug("found an Valid authorized user mn? "
+                    + ArrayUtils.toString(isMNAdministrator) + " cn? "
+                    + ArrayUtils.toString(isCNAdministrator) + " is authsubject? "
+                    + ArrayUtils.toString(authorizedSubjects));
+
             SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(httpServletRequest,
                     convertedSolrParams, READ_PERMISSION_FIELD);
 
