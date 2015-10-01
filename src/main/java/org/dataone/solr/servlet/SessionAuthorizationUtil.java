@@ -251,6 +251,9 @@ public class SessionAuthorizationUtil {
 
                     }
 
+                } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)) { 
+                    logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
+                    rtn = true;
                 }
             } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)) { 
                 logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
