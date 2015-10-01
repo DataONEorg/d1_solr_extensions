@@ -199,7 +199,7 @@ public class SessionAuthorizationUtil {
         } else {
             List<String> headerNames = Collections.list(request.getHeaderNames());
             for (String header : headerNames) {
-                logger.debug(header);
+                logger.debug(header + ": " + request.getHeader(header)) ;
             }
             if (headerNames.contains(SSL_CLIENT_VERIFY_HEADER)) {
                 String verify = request.getHeader(SSL_CLIENT_VERIFY_HEADER);
@@ -251,11 +251,11 @@ public class SessionAuthorizationUtil {
 
                     }
 
-                } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)) { 
+                } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER) && (!request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER).equals(MOD_HEADER_NULL))) { 
                     logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
                     rtn = true;
                 }
-            } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)) { 
+            } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER) && (!request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER).equals(MOD_HEADER_NULL))) { 
                 logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
                 rtn = true;
             }
