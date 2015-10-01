@@ -198,6 +198,9 @@ public class SessionAuthorizationUtil {
             rtn = true;
         } else {
             List<String> headerNames = Collections.list(request.getHeaderNames());
+            for (String header : headerNames) {
+                logger.debug(header);
+            }
             if (headerNames.contains(SSL_CLIENT_VERIFY_HEADER)) {
                 String verify = request.getHeader(SSL_CLIENT_VERIFY_HEADER);
                 if ((verify != null) && verify.equals("SUCCESS")) {
