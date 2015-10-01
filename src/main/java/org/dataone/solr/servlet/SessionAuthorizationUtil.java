@@ -117,6 +117,10 @@ public class SessionAuthorizationUtil {
      */
     private static final String MOD_HEADER_NULL = "(null)";
 
+    
+    private static final String D1_AUTHORIZATION_TOKEN_HEADER = "Authorization";
+    
+    
     private SessionAuthorizationUtil() {
     }
 
@@ -245,6 +249,9 @@ public class SessionAuthorizationUtil {
                     }
 
                 }
+            } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)) { 
+                logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
+                rtn = true;
             }
         }
         return rtn;
