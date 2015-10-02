@@ -191,74 +191,78 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
                 boolean hasValidSSL = SessionAuthorizationUtil.validateSSLAttributes(proxyRequest);
                 logger.debug("valid SSL: " + hasValidSSL);
-                if (!hasValidSSL) {
+                if (hasValidSSL) {
+                    // check if we have the certificate (session) already
+                    Session session = PortalCertificateManager.getInstance().getSession(
+                            (HttpServletRequest) request);
+                    if (session != null) {
+                        // we have a authenticated user, maybe an administrator or
+                        if (isTimeForRefresh()) {
+                            cacheAdministrativeSubjectList();
+                        }
+                        Subject authorizedSubject = session.getSubject();
+                        logger.debug("Solr Session Auth found subject: "
+                                + authorizedSubject.getValue());
+
+                        // The subject may be a CN or a CN administrator, in which case
+                        // authorization is granted for full access to records
+                        // The subject may be a MN, in which case, depending on the
+                        // service,
+                        // the records may be filtered in some way...
+                        //
+                        // For some unknown reason, the endpoint may allow access to
+                        // certain subjects
+                        // in which case, access is restricted to only those subjects on
+                        // the list
+                        //
+                        // Lastly, the subject may be a valid authorized subject, so
+                        // restrict based on the user permissions
+                        if (cnAdministrativeSubjects.contains(authorizedSubject)) {
+                            // set administrative access
+                            logger.debug(authorizedSubject.getValue() + " is a cn administrator");
+                            String[] isAdministrativeSubjectValue = { adminToken };
+                            proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
+                                    isAdministrativeSubjectValue);
+                        } else if (mnAdministrativeSubjects.contains(authorizedSubject)) {
+                            for (String mnIdentifier : mnNodeNameToSubjectsMap.keySet()) {
+                                List<Subject> mnSubjectList = mnNodeNameToSubjectsMap
+                                        .get(mnIdentifier);
+                                if (mnSubjectList != null
+                                        && mnSubjectList.contains(authorizedSubject)) {
+                                    String[] mnAdministratorParamValue = { mnIdentifier };
+                                    logger.debug(authorizedSubject.getValue()
+                                            + " is a mn administrator");
+                                    proxyRequest.setParameterValues(
+                                            ParameterKeys.IS_MN_ADMINISTRATOR,
+                                            mnAdministratorParamValue);
+                                }
+                            }
+                        } else {
+                            if (!serviceMethodRestrictionSubjects.isEmpty()) {
+                                if (serviceMethodRestrictionSubjects.contains(authorizedSubject)) {
+                                    addAuthenticatedSubjectsToRequest(proxyRequest, session,
+                                            authorizedSubject);
+                                } else {
+                                    logger.debug("Solr Session auth - "
+                                            + authorizedSubject.getValue()
+                                            + " not found in restricted list");
+                                    handleNoCertificateManagerSession(proxyRequest, response, fc);
+                                }
+                            } else {
+                                logger.debug(authorizedSubject.getValue() + " is authorized");
+                                addAuthenticatedSubjectsToRequest(proxyRequest, session,
+                                        authorizedSubject);
+                            }
+                        }
+                        fc.doFilter(proxyRequest, response);
+                    } else {
+                        logger.debug("Solr Session auth - NO SESSION");
+                        handleNoCertificateManagerSession(proxyRequest, response, fc);
+                    }
+                } else {
                     logger.debug("Invalidate SSL Attributes");
                     handleNoCertificateManagerSession(proxyRequest, response, fc);
                 }
-
-                // check if we have the certificate (session) already
-                Session session = PortalCertificateManager.getInstance().getSession(
-                        (HttpServletRequest) request);
-                if (session != null) {
-                    // we have a authenticated user, maybe an administrator or
-                    if (isTimeForRefresh()) {
-                        cacheAdministrativeSubjectList();
-                    }
-                    Subject authorizedSubject = session.getSubject();
-                    logger.debug("Solr Session Auth found subject: " + authorizedSubject.getValue());
-
-                    // The subject may be a CN or a CN administrator, in which case
-                    // authorization is granted for full access to records
-                    // The subject may be a MN, in which case, depending on the
-                    // service,
-                    // the records may be filtered in some way...
-                    //
-                    // For some unknown reason, the endpoint may allow access to
-                    // certain subjects
-                    // in which case, access is restricted to only those subjects on
-                    // the list
-                    //
-                    // Lastly, the subject may be a valid authorized subject, so
-                    // restrict based on the user permissions
-                    if (cnAdministrativeSubjects.contains(authorizedSubject)) {
-                        // set administrative access
-                        logger.debug(authorizedSubject.getValue() + " is a cn administrator");
-                        String[] isAdministrativeSubjectValue = { adminToken };
-                        proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
-                                isAdministrativeSubjectValue);
-                    } else if (mnAdministrativeSubjects.contains(authorizedSubject)) {
-                        for (String mnIdentifier : mnNodeNameToSubjectsMap.keySet()) {
-                            List<Subject> mnSubjectList = mnNodeNameToSubjectsMap.get(mnIdentifier);
-                            if (mnSubjectList != null && mnSubjectList.contains(authorizedSubject)) {
-                                String[] mnAdministratorParamValue = { mnIdentifier };
-                                logger.debug(authorizedSubject.getValue()
-                                        + " is a mn administrator");
-                                proxyRequest.setParameterValues(ParameterKeys.IS_MN_ADMINISTRATOR,
-                                        mnAdministratorParamValue);
-                            }
-                        }
-                    } else {
-                        if (!serviceMethodRestrictionSubjects.isEmpty()) {
-                            if (serviceMethodRestrictionSubjects.contains(authorizedSubject)) {
-                                addAuthenticatedSubjectsToRequest(proxyRequest, session,
-                                        authorizedSubject);
-                            } else {
-                                logger.debug("Solr Session auth - " + authorizedSubject.getValue()
-                                        + " not found in restricted list");
-                                handleNoCertificateManagerSession(proxyRequest, response, fc);
-                            }
-                        } else {
-                            logger.debug(authorizedSubject.getValue() + " is authorized");
-                            addAuthenticatedSubjectsToRequest(proxyRequest, session,
-                                    authorizedSubject);
-                        }
-                    }
-                    fc.doFilter(proxyRequest, response);
-                } else {
-                    logger.debug("Solr Session auth - NO SESSION");
-                    handleNoCertificateManagerSession(proxyRequest, response, fc);
-                }
-
             } else {
                 throw new NotImplemented("1461", "ServletRequest is not a HttpServletRequest!?");
             }
