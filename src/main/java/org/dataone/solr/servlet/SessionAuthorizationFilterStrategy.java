@@ -191,10 +191,10 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
                 boolean hasValidSSL = SessionAuthorizationUtil.validateSSLAttributes(proxyRequest);
                 logger.debug("valid SSL: " + hasValidSSL);
-                //if (!hasValidSSL) {
-                // logger.debug("Invalidate SSL Attributes");
-                // handleNoCertificateManagerSession(proxyRequest, response, fc);
-                //}
+                if (!hasValidSSL) {
+                    logger.debug("Invalidate SSL Attributes");
+                    handleNoCertificateManagerSession(proxyRequest, response, fc);
+                }
 
                 // check if we have the certificate (session) already
                 Session session = PortalCertificateManager.getInstance().getSession(

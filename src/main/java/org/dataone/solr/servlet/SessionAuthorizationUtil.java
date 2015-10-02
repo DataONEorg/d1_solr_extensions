@@ -20,7 +20,6 @@ package org.dataone.solr.servlet;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.security.NoSuchProviderException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -117,10 +116,8 @@ public class SessionAuthorizationUtil {
      */
     private static final String MOD_HEADER_NULL = "(null)";
 
-    
     private static final String D1_AUTHORIZATION_TOKEN_HEADER = "Authorization";
-    
-    
+
     private SessionAuthorizationUtil() {
     }
 
@@ -199,7 +196,7 @@ public class SessionAuthorizationUtil {
         } else {
             List<String> headerNames = Collections.list(request.getHeaderNames());
             for (String header : headerNames) {
-                logger.debug(header + ": " + request.getHeader(header)) ;
+                logger.debug(header + ": " + request.getHeader(header));
             }
             if (headerNames.contains(SSL_CLIENT_VERIFY_HEADER)) {
                 String verify = request.getHeader(SSL_CLIENT_VERIFY_HEADER);
@@ -207,17 +204,20 @@ public class SessionAuthorizationUtil {
                     /* the following code was unabashedly ripped and modified from org.apache.catalina.valves.SSLValve */
 
                     String x509ClientRequest = request.getHeader(SSL_CLIENT_CERT_HEADER);
-                    if ((x509ClientRequest != null) && (!x509ClientRequest.equals(MOD_HEADER_NULL)) && x509ClientRequest.length() > 28) {
+                    if ((x509ClientRequest != null) && (!x509ClientRequest.equals(MOD_HEADER_NULL))
+                            && x509ClientRequest.length() > 28) {
                         try {
                             /* mod_header converts the '\n' into ' ' so we have to rebuild the client certificate */
                             x509ClientRequest = x509ClientRequest.replace(' ', '\n');
                             StringBuilder rebuildX509ClientRequest = new StringBuilder();
                             rebuildX509ClientRequest.append("-----BEGIN CERTIFICATE-----\n");
-                            rebuildX509ClientRequest.append(x509ClientRequest.substring(28, x509ClientRequest.length() - 26));
+                            rebuildX509ClientRequest.append(x509ClientRequest.substring(28,
+                                    x509ClientRequest.length() - 26));
                             rebuildX509ClientRequest.append("\n-----END CERTIFICATE-----\n");
                             x509ClientRequest = rebuildX509ClientRequest.toString();
                             // ByteArrayInputStream bais = new ByteArrayInputStream(strcerts.getBytes("UTF-8"));
-                            ByteArrayInputStream bais = new ByteArrayInputStream(x509ClientRequest.getBytes(Charset.defaultCharset()));
+                            ByteArrayInputStream bais = new ByteArrayInputStream(
+                                    x509ClientRequest.getBytes(Charset.defaultCharset()));
                             X509Certificate jsseCerts[] = null;
 
                             /* if we want to use BC or another provider, then we should determine a way
@@ -230,18 +230,23 @@ public class SessionAuthorizationUtil {
                             request.setAttribute(CERTIFICATES_ATTR, jsseCerts);
                             String sslCipherHeader = request.getHeader(SSL_CLIENT_CERT_HEADER);
 
-                            if ((sslCipherHeader != null) && !(sslCipherHeader.equals(MOD_HEADER_NULL))) {
+                            if ((sslCipherHeader != null)
+                                    && !(sslCipherHeader.equals(MOD_HEADER_NULL))) {
                                 request.setAttribute(CIPHER_SUITE_ATTR, sslCipherHeader);
                             }
 
                             String sslSessionIdHeader = request.getHeader(SSL_SESSIONID_HEADER);
-                            if (sslSessionIdHeader != null && !(sslSessionIdHeader.equals(MOD_HEADER_NULL))) {
+                            if (sslSessionIdHeader != null
+                                    && !(sslSessionIdHeader.equals(MOD_HEADER_NULL))) {
                                 request.setAttribute(SSL_SESSION_ID_ATTR, sslSessionIdHeader);
                             }
 
-                            String sslCipherUserKeySizeHeader = request.getHeader(SSL_CIPHER_USER_KEYSIZE_HEADER);
-                            if (sslCipherUserKeySizeHeader != null && !(sslCipherUserKeySizeHeader.equals(MOD_HEADER_NULL))) {
-                                request.setAttribute(KEY_SIZE_ATTR, Integer.valueOf(sslCipherUserKeySizeHeader));
+                            String sslCipherUserKeySizeHeader = request
+                                    .getHeader(SSL_CIPHER_USER_KEYSIZE_HEADER);
+                            if (sslCipherUserKeySizeHeader != null
+                                    && !(sslCipherUserKeySizeHeader.equals(MOD_HEADER_NULL))) {
+                                request.setAttribute(KEY_SIZE_ATTR,
+                                        Integer.valueOf(sslCipherUserKeySizeHeader));
                             }
                             rtn = true;
                         } catch (java.security.cert.CertificateException e) {
@@ -251,12 +256,17 @@ public class SessionAuthorizationUtil {
 
                     }
 
-                } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER) && (!request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER).equals(MOD_HEADER_NULL))) { 
-                    logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
+                } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)
+                        && (!request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER).equals(
+                                MOD_HEADER_NULL))) {
+                    logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER
+                            + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
                     rtn = true;
                 }
-            } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER) && (!request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER).equals(MOD_HEADER_NULL))) { 
-                logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
+            } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)
+                    && (!request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER).equals(MOD_HEADER_NULL))) {
+                logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": "
+                        + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
                 rtn = true;
             }
         }
