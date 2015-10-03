@@ -30,6 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
+import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
@@ -94,10 +95,11 @@ public class SolrLoggingHandler extends SearchHandler {
                 .getParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR);
         String[] authorizedSubjects = httpServletRequest
                 .getParameterValues(ParameterKeys.AUTHORIZED_SUBJECTS);
-
+        SolrParams requestParams = req.getParams();
         HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
-                .getConvertedParameters(req.getParams());
+                .getConvertedParameters(requestParams);
 
+        
         SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
         if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator)
                 || SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator)
@@ -113,6 +115,20 @@ public class SolrLoggingHandler extends SearchHandler {
                     + ArrayUtils.toString(isCNAdministrator) + " is authsubject? "
                     + ArrayUtils.toString(authorizedSubjects));
 
+            // place a limit on the number of rows returned. When a user retrieves
+            // tens of thousands # of rows, then jetty throws an out of memory error
+            String[] rows = requestParams.getParams(CommonParams.ROWS);
+            if (rows != null) {
+                try {
+                    for (int i = 0 ; i < rows.length; ++i) {
+                        if (Integer.parseInt(rows[i]) > 10000) {
+                            replaceParam(CommonParams.ROWS, "10000", convertedSolrParams);
+                        }
+                    }
+                } catch (NumberFormatException ex) {
+                    replaceParam(CommonParams.ROWS, "1000", convertedSolrParams);
+                }
+            }
             SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(httpServletRequest,
                     convertedSolrParams, READ_PERMISSION_FIELD);
 
