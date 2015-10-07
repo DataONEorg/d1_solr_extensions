@@ -31,12 +31,14 @@ import java.util.Set;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.Cookie;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataone.client.auth.CertificateManager;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
+import org.dataone.portal.PortalCertificateManager;
 import org.dataone.service.cn.impl.v2.CNIdentityLDAPImpl;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotFound;
@@ -188,6 +190,8 @@ public class SessionAuthorizationUtil {
         List<String> attributeNames = Collections.list(request.getAttributeNames());
         boolean rtn = false;
 
+        Cookie portalCookie = PortalCertificateManager.getInstance().getCookie(request);
+
         // do not process any further if the attributes are already included
         // means that the ssl proxy connection to the solr instance is sending
         // correct certificate information to Java
@@ -262,11 +266,19 @@ public class SessionAuthorizationUtil {
                     logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER
                             + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
                     rtn = true;
+                } else if (portalCookie != null) {
+                    logger.debug("portal cookie found: " + portalCookie.getName() + ": "
+                            + portalCookie.getValue());
+                    rtn = true;
                 }
             } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)
                     && (!request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER).equals(MOD_HEADER_NULL))) {
                 logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": "
                         + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
+                rtn = true;
+            } else if (portalCookie != null) {
+                logger.debug("portal cookie found: " + portalCookie.getName() + ": "
+                        + portalCookie.getValue());
                 rtn = true;
             }
         }
