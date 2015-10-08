@@ -289,6 +289,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             response.getOutputStream().flush();
             response.getOutputStream().close();
         } catch (Exception ex) {
+            logger.error(ex.getMessage(), ex);
             ServiceFailure sfe = new ServiceFailure("1490", ex.getClass() + ": " + ex.getMessage());
             sfe.setStackTrace(ex.getStackTrace());
             String failure = sfe.serialize(BaseException.FMT_XML);
