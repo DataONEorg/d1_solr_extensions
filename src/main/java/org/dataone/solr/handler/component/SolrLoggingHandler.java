@@ -117,18 +117,8 @@ public class SolrLoggingHandler extends SearchHandler {
 
             // place a limit on the number of rows returned. When a user retrieves
             // tens of thousands # of rows, then jetty throws an out of memory error
-            String[] rows = requestParams.getParams(CommonParams.ROWS);
-            if (rows != null) {
-                try {
-                    for (int i = 0 ; i < rows.length; ++i) {
-                        if (Integer.parseInt(rows[i]) > 10000) {
-                            replaceParam(CommonParams.ROWS, "10000", convertedSolrParams);
-                        }
-                    }
-                } catch (NumberFormatException ex) {
-                    replaceParam(CommonParams.ROWS, "1000", convertedSolrParams);
-                }
-            }
+            SolrSearchHandlerUtil.applyRowRestrictions(requestParams, convertedSolrParams);
+
             SolrSearchHandlerUtil.applyReadRestrictionQueryFilterParameters(httpServletRequest,
                     convertedSolrParams, READ_PERMISSION_FIELD);
 

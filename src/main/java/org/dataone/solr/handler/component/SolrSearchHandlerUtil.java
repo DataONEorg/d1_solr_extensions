@@ -35,6 +35,7 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.request.SolrQueryRequest;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.configuration.Settings;
+import static org.dataone.solr.handler.component.SolrLoggingHandler.replaceParam;
 
 /**
  * Utility class to provide shared behavior among extensions/customizations of
@@ -59,6 +60,7 @@ public class SolrSearchHandlerUtil {
     // not publically available from what I can find
     //
     public static final String CONTEXT_HTTP_REQUEST_KEY = "httpRequest";
+
 
     public static void applyReadRestrictionQueryFilterParameters(
             HttpServletRequest httpServletRequest, HashMap<String, String[]> convertedSolrParams,
@@ -134,7 +136,22 @@ public class SolrSearchHandlerUtil {
             }
         }
     }
-
+    
+    public static void applyRowRestrictions(SolrParams requestParams, HashMap<String, String[]> convertedSolrParams) {
+            String[] rows = requestParams.getParams(CommonParams.ROWS);
+            if (rows != null) {
+                try {
+                    for (int i = 0 ; i < rows.length; ++i) {
+                        if (Integer.parseInt(rows[i]) > 10000) {
+                            replaceParam(CommonParams.ROWS, "10000", convertedSolrParams);
+                        }
+                    }
+                } catch (NumberFormatException ex) {
+                    replaceParam(CommonParams.ROWS, "1000", convertedSolrParams);
+                }
+            }
+    }
+    
     public static boolean isValidSolrParam(String[] solrParam) {
         // we need to check the value of administrator and authenticated user param value
         //

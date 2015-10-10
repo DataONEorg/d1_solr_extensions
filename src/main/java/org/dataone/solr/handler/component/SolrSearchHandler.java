@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
+import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.handler.component.SearchHandler;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.request.SolrRequestHandler;
@@ -77,10 +78,10 @@ public class SolrSearchHandler extends SearchHandler implements SolrRequestHandl
             SolrSearchHandlerUtil.logSolrContext(request);
             throw new ServiceFailure("4310", "Solr misconfigured. Context should have the request");
         }
-
+        SolrParams requestParams = request.getParams();
         HashMap<String, String[]> convertedSolrParams = SolrSearchHandlerUtil
-                .getConvertedParameters(request.getParams());
-
+                .getConvertedParameters(requestParams);
+        SolrSearchHandlerUtil.applyRowRestrictions(requestParams, convertedSolrParams);
         convertedSolrParams.remove("d1-pc");
 
         disableMLTResults(convertedSolrParams);
