@@ -166,12 +166,7 @@ public class SessionAuthorizationUtil {
                         authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
                     } else {
                     	String standardizedName = subject.getValue();
-                        try {
-	                    	standardizedName = CertificateManager.getInstance().standardizeDN(
-	                                subject.getValue());
-                        } catch (Exception e) {
-                        	logger.warn("Could not standardize DN for: " + standardizedName, e);
-                        }
+                        standardizedName = CertificateManager.getInstance().standardizeDN(subject.getValue());
                         authorizedSubjects.add(standardizedName);
                     }
                 }
