@@ -154,8 +154,12 @@ public class SessionAuthorizationUtil {
             authorizedSubjectInfo = session.getSubjectInfo();
         }
         if (authorizedSubjectInfo == null) {
-            String standardizedName = CertificateManager.getInstance().standardizeDN(
-                    authorizedSubject.getValue());
+            String standardizedName = authorizedSubject.getValue();
+            try {
+            	standardizedName = CertificateManager.getInstance().standardizeDN(standardizedName);
+            } catch (Exception e) {
+            	// is not valid DN
+            }
             authorizedSubjects.add(standardizedName);
         } else {
             Set<Subject> subjectSet = new HashSet<Subject>();
@@ -166,7 +170,12 @@ public class SessionAuthorizationUtil {
                         authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
                     } else {
                     	String standardizedName = subject.getValue();
-                        standardizedName = CertificateManager.getInstance().standardizeDN(subject.getValue());
+                        try {
+	                    	standardizedName = CertificateManager.getInstance().standardizeDN(
+	                                subject.getValue());
+                        } catch (Exception e) {
+                        	logger.warn("Could not standardize DN for: " + standardizedName, e);
+                        }
                         authorizedSubjects.add(standardizedName);
                     }
                 }
