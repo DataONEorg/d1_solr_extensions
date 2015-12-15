@@ -101,9 +101,9 @@ public class SolrLoggingHandler extends SearchHandler {
 
         
         SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
-        if (convertedSolrParams.containsKey(FacetParams.FACET_FIELD)) {
-              for (int i = 0; i < convertedSolrParams.get(FacetParams.FACET_FIELD).length; i++) {
-                    String value = convertedSolrParams.get(FacetParams.FACET_FIELD)[i];
+        if (convertedSolrParams.containsKey(FacetParams.FACET)) {
+              for (int i = 0; i < convertedSolrParams.get(FacetParams.FACET).length; i++) {
+                    String value = convertedSolrParams.get(FacetParams.FACET)[i];
                     if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("on") ) {
                         isFacetedQuery = true;
                     }
