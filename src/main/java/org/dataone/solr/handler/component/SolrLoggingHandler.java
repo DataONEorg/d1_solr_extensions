@@ -75,7 +75,7 @@ public class SolrLoggingHandler extends SearchHandler {
         // copy original params, add new params, set new param map in
         // SolrQueryRequest
         HttpServletRequest httpServletRequest = null;
-
+        boolean isFacetedQuery = false;
         if (req.getContext().containsKey(SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY)) {
             httpServletRequest = (HttpServletRequest) req.getContext().get(
                     SolrSearchHandlerUtil.CONTEXT_HTTP_REQUEST_KEY);
@@ -101,7 +101,60 @@ public class SolrLoggingHandler extends SearchHandler {
 
         
         SolrSearchHandlerUtil.logSolrParameters(convertedSolrParams);
-        if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator)
+        if (convertedSolrParams.containsKey(FacetParams.FACET_FIELD)) {
+              for (int i = 0; i < convertedSolrParams.get(FacetParams.FACET_FIELD).length; i++) {
+                    String value = convertedSolrParams.get(FacetParams.FACET_FIELD)[i];
+                    if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("on") ) {
+                        isFacetedQuery = true;
+                    }
+                }
+        }
+        // Task #3886: Filter the d1-cn-log index based on a public role
+        //  ...
+        //  redact sensitive columns from facets
+        // For the first version of the d1_dashboard application, filter Solr queries to provide public access 
+        // to only the summary information returned by Solr. This requires that queries by the public user
+        // 1) should be accepted
+        // 2) should have the rows parameter set to 0 despite the input prior to executing the query
+        // 3) queries that include facets should redact the ipAddress, userAgent,readPermission and subject fields from the facet.field parameter prior to executing the query
+        // 4) facet.prefix should be entirely removed
+        // 5)  facet.query should redact any queries on the ipAddress, userAgent,readPermission and subject
+        //
+        // Bug #7554 : logsolr endpoint returning fewer records when called as authenticated user
+        // Faceting summary totals should be equal regardless if user is authenticated or if user is public. 
+        // If a solr query against the event_index is a faceted query, then always return the facet summary 
+        // information as if the user is a public user.
+
+        if (isFacetedQuery) {
+            replaceParam(CommonParams.ROWS, "0", convertedSolrParams);
+            if (convertedSolrParams.containsKey(FacetParams.FACET_FIELD)) {
+                removeParamValue(FacetParams.FACET_FIELD, "ipAddress", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_FIELD, "readPermission", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_FIELD, "subject", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_FIELD, "rightsHolder", convertedSolrParams);
+            }
+            if (convertedSolrParams.containsKey(FacetParams.FACET_QUERY)) {
+                removeParamValue(FacetParams.FACET_QUERY, "ipAddress", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_QUERY, "readPermission", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_QUERY, "subject", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_QUERY, "rightsHolder", convertedSolrParams);
+            }
+            if (convertedSolrParams.containsKey(FacetParams.FACET_CONTAINS)) {
+                removeParamValue(FacetParams.FACET_CONTAINS, "ipAddress", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_CONTAINS, "readPermission", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_CONTAINS, "subject", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_CONTAINS, "rightsHolder", convertedSolrParams);
+            }
+            if (convertedSolrParams.containsKey(FacetParams.FACET_CONTAINS_IGNORE_CASE )) {
+                removeParamValue(FacetParams.FACET_CONTAINS_IGNORE_CASE, "ipAddress", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_CONTAINS_IGNORE_CASE, "readPermission", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_CONTAINS_IGNORE_CASE, "subject", convertedSolrParams);
+                removeParamValue(FacetParams.FACET_CONTAINS_IGNORE_CASE, "rightsHolder", convertedSolrParams);
+            }
+            if (convertedSolrParams.containsKey(FacetParams.FACET_PREFIX)) {
+                convertedSolrParams.remove(FacetParams.FACET_PREFIX);
+            }
+        } else if (SolrSearchHandlerUtil.isValidSolrParam(isMNAdministrator)
                 || SolrSearchHandlerUtil.isValidSolrParam(isCNAdministrator)
                 || SolrSearchHandlerUtil.isValidSolrParam(authorizedSubjects)) {
 
@@ -127,33 +180,11 @@ public class SolrLoggingHandler extends SearchHandler {
                 applyMNAdministratorRestriction(convertedSolrParams, isMNAdministrator[0]);
             }
         } else {
-
             // Task #3886: Filter the d1-cn-log index based on a public role
-            //this is a non-authorized user call. just return summary information and
-            //redact sensitive columns from facets
-            // For the first version of the d1_dashboard application, filter Solr queries to provide public access to only the summary information returned by Solr. This requires that queries by the public user
-            // 1) should be accepted
-            // 2) should have the rows parameter set to 0 despite the input prior to executing the query
-            // 3) queries that include facets should redact the ipAddress, userAgent,readPermission and subject fields from the facet.field parameter prior to executing the query
-            // 4) facet.prefix should be entirely removed
-            // 5)  facet.query should redact any queries on the ipAddress, userAgent,readPermission and subject
+            //this is a non-authorized user call. just return summary information
 
             replaceParam(CommonParams.ROWS, "0", convertedSolrParams);
-            if (convertedSolrParams.containsKey(FacetParams.FACET_FIELD)) {
-                removeParamValue(FacetParams.FACET_FIELD, "ipAddress", convertedSolrParams);
-                removeParamValue(FacetParams.FACET_FIELD, "readPermission", convertedSolrParams);
-                removeParamValue(FacetParams.FACET_FIELD, "subject", convertedSolrParams);
-                removeParamValue(FacetParams.FACET_FIELD, "rightsHolder", convertedSolrParams);
-            }
-            if (convertedSolrParams.containsKey(FacetParams.FACET_QUERY)) {
-                removeParamValue(FacetParams.FACET_QUERY, "ipAddress", convertedSolrParams);
-                removeParamValue(FacetParams.FACET_QUERY, "readPermission", convertedSolrParams);
-                removeParamValue(FacetParams.FACET_QUERY, "subject", convertedSolrParams);
-                removeParamValue(FacetParams.FACET_QUERY, "rightsHolder", convertedSolrParams);
-            }
-            if (convertedSolrParams.containsKey(FacetParams.FACET_PREFIX)) {
-                convertedSolrParams.remove(FacetParams.FACET_PREFIX);
-            }
+
         }
         SolrSearchHandlerUtil.setNewSolrParameters(req, convertedSolrParams);
 
