@@ -71,8 +71,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:/webapp/mockController-dispatcher.xml",
         "classpath:/webapp/mockController-beans.xml" }, loader = MockWebApplicationContextLoader.class)
-public class LogServiceSessionAuthorizationFilterTestCase {
-    public static Log log = LogFactory.getLog(LogServiceSessionAuthorizationFilterTestCase.class);
+public class LogServiceSessionAuthorizationFilterTestUnit {
+    public static Log log = LogFactory.getLog(LogServiceSessionAuthorizationFilterTestUnit.class);
     private NodeLdapPopulation cnLdapPopulation;
     private SubjectLdapPopulation subjectLdapPopulation;
     private X509CertificateGenerator x509CertificateGenerator;

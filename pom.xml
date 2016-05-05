@@ -9,11 +9,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <solr.version>5.2.1</solr.version>
         <bouncycastle.version>1.52</bouncycastle.version>
+        <d1_common_java.version>2.2.0-SNAPSHOT</d1_common_java.version>
         <d1_libclient_java.version>2.2.0-SNAPSHOT</d1_libclient_java.version>
         <d1_cn_common.version>2.2.0-SNAPSHOT</d1_cn_common.version>
         <d1_identity_manager.version>2.2.0-SNAPSHOT</d1_identity_manager.version>
         <d1_cn_noderegistry.version>2.2.0-SNAPSHOT</d1_cn_noderegistry.version>
         <d1_portal.version>2.2.0-SNAPSHOT</d1_portal.version>
+        <d1_test_resources.version>2.2.0-SNAPSHOT</d1_test_resources.version>
         <spring.version>3.1.1.RELEASE</spring.version>
     </properties>
     <build>
@@ -50,7 +52,7 @@
                 <executions>
                     <execution>
                         <id>copy-resources</id>
-            <!-- here the phase you need -->
+                        <!-- here the phase you need -->
                         <phase>test</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -110,7 +112,7 @@
                                     <exclude>commons-codec</exclude>
                                     <exclude>commons-io</exclude>
                                     <exclude>commons-fileupload</exclude>
-                                  <!--   <exclude>org.slf4j</exclude>   -->
+                                    <!--   <exclude>org.slf4j</exclude>   -->
                                     <exclude>xml-apis</exclude>
                                     <exclude>javax.servlet</exclude>
                                 </excludes>
@@ -287,6 +289,13 @@
             <version>${solr.version}</version>
             <scope>provided</scope>
         </dependency>
+    <dependency>
+      <groupId>org.dataone</groupId>
+      <artifactId>d1_common_java</artifactId>
+      <version>${d1_common_java.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
         <dependency>
             <groupId>org.dataone</groupId>
             <artifactId>d1_libclient_java</artifactId>
@@ -317,52 +326,58 @@
             <version>${d1_portal.version}</version>
             <type>jar</type>
         </dependency>
-
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>4.3.3</version>
-		</dependency>        
-		 <dependency>
-		  <groupId>xerces</groupId>
-		  <artifactId>xercesImpl</artifactId>
-		  <version>2.9.1</version>
-		</dependency>        
-		<dependency>
-			<groupId>commons-beanutils</groupId>
-			<artifactId>commons-beanutils</artifactId>
-			<version>1.8.3</version>
-		</dependency>     
+        <dependency>
+            <groupId>org.dataone</groupId>
+            <artifactId>d1_test_resources</artifactId>
+            <version>${d1_test_resources.version}</version>
+            <type>jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.3.3</version>
+        </dependency>        
+        <dependency>
+            <groupId>xerces</groupId>
+            <artifactId>xercesImpl</artifactId>
+            <version>2.9.1</version>
+        </dependency>        
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.8.3</version>
+        </dependency>     
         <dependency>
             <groupId>commons-configuration</groupId>
             <artifactId>commons-configuration</artifactId>
             <version>1.7</version>
         </dependency>
         
-		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-api</artifactId>
-		    <version>1.7.7</version>
-		</dependency>
-		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-log4j12</artifactId>
-		    <version>1.7.7</version>
-		</dependency> 
-		<!-- 
-		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-api</artifactId>
-		    <version>1.7.5</version>
-		    <scope>provided</scope>
-		</dependency> 
-		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-log4j12</artifactId>
-		    <version>1.7.5</version>
-		    <scope>provided</scope>
-		</dependency>
-		 --> 
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.7</version>
+        </dependency> 
+        <!-- 
+       <dependency>
+           <groupId>org.slf4j</groupId>
+           <artifactId>slf4j-api</artifactId>
+           <version>1.7.5</version>
+           <scope>provided</scope>
+       </dependency> 
+       <dependency>
+           <groupId>org.slf4j</groupId>
+           <artifactId>slf4j-log4j12</artifactId>
+           <version>1.7.5</version>
+           <scope>provided</scope>
+       </dependency>
+        --> 
     </dependencies>
     <scm>
         <url>https://repository.dataone.org/software/cicore</url>
