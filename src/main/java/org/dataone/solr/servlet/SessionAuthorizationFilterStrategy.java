@@ -39,7 +39,8 @@ import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
 import org.dataone.portal.PortalCertificateManager;
-import org.dataone.service.cn.impl.v2.NodeRegistryService;
+import org.dataone.service.cn.v2.NodeRegistryService;
+import org.dataone.service.cn.v2.impl.NodeRegistryServiceImpl;
 import org.dataone.service.exceptions.BaseException;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotImplemented;
@@ -65,7 +66,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
     protected static Log logger = LogFactory.getLog(SessionAuthorizationFilterStrategy.class);
 
-    private static NodeRegistryService nodeRegistryService = new NodeRegistryService();
+    private static NodeRegistryService nodeRegistryService = new NodeRegistryServiceImpl();
     private static String adminToken = Settings.getConfiguration().getString(
             "cn.solrAdministrator.token");
 
