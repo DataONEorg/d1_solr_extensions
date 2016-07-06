@@ -3,19 +3,19 @@
     <groupId>org.dataone</groupId>
     <artifactId>d1_solr_extensions</artifactId>
     <packaging>jar</packaging>
-    <version>2.2.0-SNAPSHOT</version>
+    <version>2.3.0-SNAPSHOT</version>
     <name>DataONE_Solr_Extensions</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <solr.version>5.2.1</solr.version>
         <bouncycastle.version>1.52</bouncycastle.version>
-        <d1_common_java.version>2.2.0-SNAPSHOT</d1_common_java.version>
-        <d1_libclient_java.version>2.2.0-SNAPSHOT</d1_libclient_java.version>
-        <d1_cn_common.version>2.2.0-SNAPSHOT</d1_cn_common.version>
-        <d1_identity_manager.version>2.2.0-SNAPSHOT</d1_identity_manager.version>
-        <d1_cn_noderegistry.version>2.2.0-SNAPSHOT</d1_cn_noderegistry.version>
-        <d1_portal.version>2.2.0-SNAPSHOT</d1_portal.version>
-        <d1_test_resources.version>2.2.0-SNAPSHOT</d1_test_resources.version>
+        <d1_common_java.version>2.3.0-SNAPSHOT</d1_common_java.version>
+        <d1_libclient_java.version>2.3.0-SNAPSHOT</d1_libclient_java.version>
+        <d1_cn_common.version>2.3.0-SNAPSHOT</d1_cn_common.version>
+        <d1_identity_manager.version>2.3.0-SNAPSHOT</d1_identity_manager.version>
+        <d1_cn_noderegistry.version>2.3.0-SNAPSHOT</d1_cn_noderegistry.version>
+        <d1_portal.version>2.3.0-SNAPSHOT</d1_portal.version>
+        <d1_test_resources.version>2.3.0-SNAPSHOT</d1_test_resources.version>
         <spring.version>3.1.1.RELEASE</spring.version>
     </properties>
     <build>
