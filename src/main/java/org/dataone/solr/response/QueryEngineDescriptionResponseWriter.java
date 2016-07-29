@@ -29,6 +29,7 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.QueryResponseWriter;
 import org.apache.solr.response.SolrQueryResponse;
+import org.dataone.exceptions.MarshallingException;
 import org.dataone.service.types.v1_1.QueryEngineDescription;
 import org.dataone.service.util.TypeMarshaller;
 import org.jibx.runtime.JiBXException;
@@ -71,7 +72,7 @@ public abstract class QueryEngineDescriptionResponseWriter implements QueryRespo
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         try {
             TypeMarshaller.marshalTypeToOutputStream(qed, os, D1_XSLT);
-        } catch (JiBXException jibxEx) {
+        } catch (MarshallingException jibxEx) {
             logger.error(jibxEx.getMessage(), jibxEx);
         } catch (IOException ioEx) {
             logger.error(ioEx.getMessage(), ioEx);
