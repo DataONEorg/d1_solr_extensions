@@ -32,7 +32,6 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.dataone.exceptions.MarshallingException;
 import org.dataone.service.types.v1_1.QueryEngineDescription;
 import org.dataone.service.util.TypeMarshaller;
-import org.jibx.runtime.JiBXException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
