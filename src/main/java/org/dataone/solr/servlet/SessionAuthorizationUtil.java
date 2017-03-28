@@ -33,6 +33,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataone.client.auth.CertificateManager;
@@ -159,6 +160,7 @@ public class SessionAuthorizationUtil {
             	standardizedName = CertificateManager.getInstance().standardizeDN(standardizedName);
             } catch (Exception e) {
             	// is not valid DN
+                // so the unstandardized name is added...
             }
             authorizedSubjects.add(standardizedName);
         } else {
@@ -207,10 +209,12 @@ public class SessionAuthorizationUtil {
         if (attributeNames.contains(CERTIFICATES_ATTR)) {
             rtn = true;
         } else {
+            // XXX: is headerNames nullable?
             List<String> headerNames = Collections.list(request.getHeaderNames());
-            for (String header : headerNames) {
-                logger.debug(header + ": " + request.getHeader(header));
-            }
+            if (logger.isDebugEnabled()) 
+                for (String header : headerNames) {
+                    logger.debug(header + ": " + request.getHeader(header));
+            }   
             if (headerNames.contains(SSL_CLIENT_VERIFY_HEADER)) {
                 String verify = request.getHeader(SSL_CLIENT_VERIFY_HEADER);
                 if ((verify != null) && verify.equals("SUCCESS")) {
@@ -219,6 +223,7 @@ public class SessionAuthorizationUtil {
                     String x509ClientRequest = request.getHeader(SSL_CLIENT_CERT_HEADER);
                     if ((x509ClientRequest != null) && (!x509ClientRequest.equals(MOD_HEADER_NULL))
                             && x509ClientRequest.length() > 28) {
+                        ByteArrayInputStream bais = null;
                         try {
                             /* mod_header converts the '\n' into ' ' so we have to rebuild the client certificate */
                             x509ClientRequest = x509ClientRequest.replace(' ', '\n');
@@ -229,7 +234,7 @@ public class SessionAuthorizationUtil {
                             rebuildX509ClientRequest.append("\n-----END CERTIFICATE-----\n");
                             x509ClientRequest = rebuildX509ClientRequest.toString();
                             // ByteArrayInputStream bais = new ByteArrayInputStream(strcerts.getBytes("UTF-8"));
-                            ByteArrayInputStream bais = new ByteArrayInputStream(
+                            bais = new ByteArrayInputStream(
                                     x509ClientRequest.getBytes(Charset.defaultCharset()));
                             X509Certificate jsseCerts[] = null;
 
@@ -265,29 +270,35 @@ public class SessionAuthorizationUtil {
                         } catch (java.security.cert.CertificateException e) {
                             logger.warn("sslValve.certError", e);
 
+                        } finally {
+                            // probably not necessary, but a good hapbit.
+                            IOUtils.closeQuietly(bais);
                         }
-
                     }
 
                 } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)
                         && (!request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER).equals(
                                 MOD_HEADER_NULL))) {
-                    logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER
-                            + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
+                    if (logger.isDebugEnabled())
+                        logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER
+                                + ": " + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
                     rtn = true;
                 } else if (portalCookie != null) {
-                    logger.debug("portal cookie found: " + portalCookie.getName() + ": "
-                            + portalCookie.getValue());
+                    if (logger.isDebugEnabled()) 
+                        logger.debug("portal cookie found: " + portalCookie.getName() + ": "
+                                + portalCookie.getValue());
                     rtn = true;
                 }
             } else if (headerNames.contains(D1_AUTHORIZATION_TOKEN_HEADER)
                     && (!request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER).equals(MOD_HEADER_NULL))) {
-                logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": "
-                        + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
+                if (logger.isDebugEnabled())
+                    logger.debug("session passed via token: " + D1_AUTHORIZATION_TOKEN_HEADER + ": "
+                            + request.getHeader(D1_AUTHORIZATION_TOKEN_HEADER));
                 rtn = true;
             } else if (portalCookie != null) {
-                logger.debug("portal cookie found: " + portalCookie.getName() + ": "
-                        + portalCookie.getValue());
+                if (logger.isDebugEnabled())
+                    logger.debug("portal cookie found: " + portalCookie.getName() + ": "
+                            + portalCookie.getValue());
                 rtn = true;
             }
         }
