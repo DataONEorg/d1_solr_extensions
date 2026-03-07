@@ -7,7 +7,8 @@
     <name>DataONE_Solr_Extensions</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <compiler.target.version>17</compiler.target.version>
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
         <solr.version>9.10.1</solr.version>
         <bouncycastle.version>1.52</bouncycastle.version>
         <d1_common_java.version>2.3.0</d1_common_java.version>
@@ -75,10 +76,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.7</source>
-                    <target>${compiler.target.version}</target>
-                </configuration>
             </plugin>
 
             <plugin>
