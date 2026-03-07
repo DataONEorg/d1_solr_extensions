@@ -56,13 +56,14 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     private static String adminToken = Settings.getConfiguration().getString(
             "cn.solrAdministrator.token");
 
-    private List<Subject> cnAdministrativeSubjects = new ArrayList<Subject>();
-    private List<Subject> mnAdministrativeSubjects = new ArrayList<Subject>();
-    private List<Subject> serviceMethodRestrictionSubjects = new ArrayList<Subject>();
-    private Map<String, List<Subject>> mnNodeNameToSubjectsMap = new HashMap<String, List<Subject>>();
+    protected static List<Subject> cnAdministrativeSubjects = new ArrayList<Subject>();
+    protected static List<Subject> mnAdministrativeSubjects = new ArrayList<Subject>();
+    protected static List<Subject> serviceMethodRestrictionSubjects = new ArrayList<Subject>();
+    protected static Map<String, List<Subject>> mnNodeNameToSubjectsMap = new HashMap<String,
+        List<Subject>>();
     private long lastRefreshTimeMS = 0L;
     private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L; // 5 minutes
-    private static String cnNodeUrl = null;
+    protected static String cnNodeUrl = null;
 
     private final static String ENV_NAME_D1_CN_URL = "D1_CN_URL";
     private final static String ENV_NAME_CN_ADMINS = "D1_CN_ADMINS"; // Optional. Separated by ;
@@ -167,6 +168,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             for (String part : parts) {
                 String value = part.trim();
                 if (!value.isEmpty()) {
+                    logger.debug("add "+ value);
                     list.add(value);
                 }
             }
