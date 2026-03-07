@@ -1,23 +1,7 @@
-/**
- * This work was created by participants in the DataONE project, and is jointly copyrighted by participating
- * institutions in DataONE. For more information on DataONE, see our web site at http://dataone.org.
- *
- * Copyright ${year}
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
- * $Id$
- */
 package org.dataone.solr.servlet;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +16,9 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,23 +26,23 @@ import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
 import org.dataone.portal.PortalCertificateManager;
-import org.dataone.service.cn.v2.NodeRegistryService;
-import org.dataone.service.cn.v2.impl.NodeRegistryServiceImpl;
 import org.dataone.service.exceptions.BaseException;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotImplemented;
 import org.dataone.service.exceptions.ServiceFailure;
 import org.dataone.service.types.v1.NodeState;
 import org.dataone.service.types.v1.NodeType;
-import org.dataone.service.types.v1.Service;
-import org.dataone.service.types.v1.ServiceMethodRestriction;
 import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
-import org.dataone.service.types.v2.Node;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
- * Strategy for a pre-filter to SolrDispatchFilter. The strategy defines how to set authorization information in a
- * wrapped request's parameter map
+ * Strategy for a pre-filter to SolrDispatchFilter. The strategy defines how to set authorization
+ * information in a wrapped request's parameter map
  *
  * A DataONE SolrRequestHandler implementation can then create a filter based on the parameters, since
  * SolrRequestHandler does not have access to the request attributes where the session is stored
@@ -66,7 +53,6 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
     protected static Log logger = LogFactory.getLog(SessionAuthorizationFilterStrategy.class);
 
-    private static NodeRegistryService nodeRegistryService = new NodeRegistryServiceImpl();
     private static String adminToken = Settings.getConfiguration().getString(
             "cn.solrAdministrator.token");
 
@@ -76,9 +62,16 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     private Map<String, List<Subject>> mnNodeNameToSubjectsMap = new HashMap<String, List<Subject>>();
     private long lastRefreshTimeMS = 0L;
     private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L; // 5 minutes
+    private static String cnNodeUrl = null;
+
+    private final static String ENV_NAME_D1_CN_URL = "D1_CN_URL";
+    private final static String ENV_NAME_CN_ADMINS = "D1_CN_ADMINS"; // Optional. Separated by ;
+    private final static String SETTING_NAME_D1_CN_URL = "D1Client.CN_URL";
+    private final static String SETTING_NAME_CN_ADMINS = "cn.administrators";
 
     /**
-     * Allows concrete implementations of SessionAuthorizationFilterStrategy to determine what access (if any) to allow
+     * Allows concrete implementations of SessionAuthorizationFilterStrategy to determine
+     * what access (if any) to allow
      * requests that do have session information available from the dataONE CertificateManager.
      *
      * Called from doFilter
@@ -128,6 +121,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      */
     @Override
     public void init(FilterConfig fc) throws ServletException {
+        readEnvVariables();
         try {
             logger.debug("about to cache admin");
             cacheAdministrativeSubjectList();
@@ -138,6 +132,46 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         }
         lastRefreshTimeMS = new Date().getTime();
         logger.debug("init SessionAuthorizationFilter: " + this.getClass().getName());
+    }
+
+    /**
+     * Read the environmental variables and set them in the settings
+     */
+    static protected void readEnvVariables() {
+        String cnClientUrl = System.getenv(ENV_NAME_D1_CN_URL);
+        if (cnClientUrl == null || cnClientUrl.isBlank()) {
+            cnClientUrl = "https://cn.dataone.org/cn";
+        }
+        logger.debug("Set " + cnClientUrl + " to the settings " + SETTING_NAME_D1_CN_URL);
+        Settings.getConfiguration().setProperty(SETTING_NAME_D1_CN_URL, cnClientUrl);
+        String cnAdminsStr = System.getenv(ENV_NAME_CN_ADMINS);
+        if (cnAdminsStr != null && !cnAdminsStr.isBlank()) {
+            List<String> cnAdmins = splitTextBySemicolon(cnAdminsStr);
+            if (cnAdmins != null) {
+                logger.debug("Set " + cnAdmins + " to the settings " + SETTING_NAME_CN_ADMINS);
+                Settings.getConfiguration().setProperty(SETTING_NAME_CN_ADMINS, cnAdmins);
+            }
+        }
+    }
+
+    /**
+     * Split the text which semicolon separates into a list
+     * @param text  the text will be parsed
+     * @return a list string. Null is returned if the text is null or blank
+     */
+    static protected List<String> splitTextBySemicolon(String text) {
+        ArrayList<String> list = null;
+        if (text != null && !text.isBlank()) {
+            list = new ArrayList<>();
+            String[] parts = text.split(";");
+            for (String part : parts) {
+                String value = part.trim();
+                if (!value.isEmpty()) {
+                    list.add(value);
+                }
+            }
+        }
+        return list;
     }
 
     /**
@@ -326,49 +360,79 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 cnAdministrativeSubjects.add(adminSubject);
             }
         }
-        List<Node> nodeList = nodeRegistryService.listNodes().getNodeList();
-        for (Node node : nodeList) {
-            if (node.getType().equals(NodeType.CN) && node.getState().equals(NodeState.UP)) {
-                for (Subject subject : node.getSubjectList()) {
-                    logger.debug("AdminList entry CN subject: " + subject.getValue());
+        // Parse the node information from the result of the cnNodeUrl
+        try {
+            if (cnNodeUrl == null || cnNodeUrl.isBlank()) {
+                // Initialize cnUrl
+                cnNodeUrl = Settings.getConfiguration().getString(SETTING_NAME_D1_CN_URL);
+                if (cnNodeUrl == null || cnNodeUrl.isBlank()) {
+                    // It is still null or blank, throw an exception
+                    throw new ServiceFailure("000", "The CN URL is null. Please check if you "
+                        + "correctly set the environment variable " + ENV_NAME_D1_CN_URL);
                 }
-                cnAdministrativeSubjects.addAll(node.getSubjectList());
-                List<Service> cnServices = node.getServices().getServiceList();
-                for (Service service : cnServices) {
-                    if (service.getName().equalsIgnoreCase("CNCore")) {
-                        if ((service.getRestrictionList() != null)
-                                && !service.getRestrictionList().isEmpty()) {
-                            List<ServiceMethodRestriction> serviceMethodRestrictionList = service
-                                    .getRestrictionList();
-                            for (ServiceMethodRestriction serviceMethodRestriction : serviceMethodRestrictionList) {
-                                if (serviceMethodRestriction.getMethodName().equalsIgnoreCase(
-                                        getServiceMethodName())) {
-                                    if (serviceMethodRestriction.getSubjectList() != null) {
-                                        serviceMethodRestrictionSubjects
-                                                .addAll(serviceMethodRestriction.getSubjectList());
-                                        for (Subject subject : serviceMethodRestriction
-                                                .getSubjectList()) {
-                                            logger.debug("AdminList entry CN subject: "
-                                                    + subject.getValue());
-                                        }
-                                    }
-                                }
+                if (cnNodeUrl.equals("/")) {
+                    cnNodeUrl = cnNodeUrl + "v2/node";
+                } else {
+                    cnNodeUrl = cnNodeUrl + "/v2/node";
+                }
+            }
+            logger.debug("The cn node url is " + cnNodeUrl);
+            URL url = new URL(cnNodeUrl);
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(url.openStream());
+            // Normalize the XML structure
+            doc.getDocumentElement().normalize();
+            // Get all <node> elements
+            NodeList nodeList = doc.getElementsByTagName("node");
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                Node nodeItem = nodeList.item(i);
+                if (nodeItem.getNodeType() == Node.ELEMENT_NODE) {
+                    Element nodeElement = (Element) nodeItem;
+                    String identifier = getTextContent(nodeElement, "identifier");
+                    String type = nodeElement.getAttribute("type");
+                    String state = nodeElement.getAttribute("state");
+                    // Filter for cn/up or mn/up
+                    if (state != null && state.equals(NodeState.UP.xmlValue())) {
+                        // Get all subjects
+                        NodeList subjects = nodeElement.getElementsByTagName("subject");
+                        List<Subject> subjectList = new ArrayList<>();
+                        for (int j = 0; j < subjects.getLength(); j++) {
+                            String subjectStr = subjects.item(j).getTextContent();
+                            Subject subject = new Subject();
+                            subject.setValue(subjectStr);
+                            subjectList.add(subject);
+                            logger.debug(
+                                "Find the subject " + subjectStr + " for node " + identifier);
+                        }
+                        if (!subjectList.isEmpty() && type != null) {
+                            if (type.equals(NodeType.CN.xmlValue())) {
+                                logger.debug("Put all found subjects for CN " + identifier + " "
+                                                 + "into the cn admin subject list.");
+                                cnAdministrativeSubjects.addAll(subjectList);
+                            } else if (type.equals(NodeType.MN.xmlValue())) {
+                                logger.debug("Put all found subjects for CN " + identifier + " "
+                                                 + "into the cn admin subject list.");
+                                mnAdministrativeSubjects.addAll(subjectList);
+                                mnNodeNameToSubjectsMap.put(identifier, subjectList);
                             }
                         }
                     }
                 }
             }
-            if (node.getType().equals(NodeType.MN) && node.getState().equals(NodeState.UP)) {
-                if (node.getSubjectList() != null && !(node.getSubjectList().isEmpty())) {
-                    mnAdministrativeSubjects.addAll(node.getSubjectList());
-                    mnNodeNameToSubjectsMap.put(node.getIdentifier().getValue(),
-                            node.getSubjectList());
-                    for (Subject subject : node.getSubjectList()) {
-                        logger.debug("AdminList entry CN subject: " + subject.getValue());
-                    }
-                }
-            }
+        } catch (IOException | ParserConfigurationException | SAXException e) {
+            throw new ServiceFailure("0000", e.getMessage());
         }
+    }
+
+    /* Helper method to get text content of a child element*/
+    private static String getTextContent(Element parent, String tagName) {
+        NodeList list = parent.getElementsByTagName(tagName);
+        if (list.getLength() > 0) {
+            return list.item(0).getTextContent();
+        }
+        return "";
     }
 
     /**
