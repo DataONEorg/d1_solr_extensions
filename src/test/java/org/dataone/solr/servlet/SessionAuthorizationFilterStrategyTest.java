@@ -21,12 +21,15 @@ import static org.junit.Assert.assertTrue;
 public class SessionAuthorizationFilterStrategyTest {
     public final static String ENV_NAME_D1_CN_URL = "D1_CN_URL";
     public final static String ENV_NAME_CN_ADMINS = "D1_CN_ADMINS"; // Optional. Separated by ;
+    public final static String ENV_NAME_CN_SOLR_ADMIN_TOKEN = "D1_CN_SOLR_ADMIN_TOKEN";
     public final static String SETTING_NAME_D1_CN_URL = "D1Client.CN_URL";
     public final static String SETTING_NAME_CN_ADMINS = "cn.administrators";
+    public final static String SETTING_NAME_SOLR_ADMIN_TOKEN = "cn.solrAdministrator.token";
     private final static String CN_SANDBOX_URL = "https://cn-sandbox.test.dataone.org/cn";
     private final static String CN_ADMIN1 = "http://orcid.org/0001-0005-9751-12345";
     private final static String CN_ADMIN2 = "http://orcid.org/0001-0005-9751-1234567";
     private final static String CN_ADMINS = CN_ADMIN1 + ";" + CN_ADMIN2;
+    private final static String TOKEN = "123456";
 
     @Rule
     public EnvironmentVariablesRule environmentVariablesRule = new EnvironmentVariablesRule();
@@ -36,12 +39,17 @@ public class SessionAuthorizationFilterStrategyTest {
     public void setUp() {
         Settings.getConfiguration().clearProperty(SETTING_NAME_D1_CN_URL);
         Settings.getConfiguration().clearProperty(SETTING_NAME_CN_ADMINS);
+        Settings.getConfiguration().clearProperty(SETTING_NAME_SOLR_ADMIN_TOKEN);
     }
 
     @After
     public void tearDown() {
         environmentVariablesRule.set(ENV_NAME_D1_CN_URL, null);
         environmentVariablesRule.set(ENV_NAME_CN_ADMINS, null);
+        environmentVariablesRule.set(ENV_NAME_CN_SOLR_ADMIN_TOKEN, null);
+        Settings.getConfiguration().clearProperty(SETTING_NAME_D1_CN_URL);
+        Settings.getConfiguration().clearProperty(SETTING_NAME_CN_ADMINS);
+        Settings.getConfiguration().clearProperty(SETTING_NAME_SOLR_ADMIN_TOKEN);
         SessionAuthorizationFilterStrategy.cnNodeUrl = null;
     }
     /**
@@ -56,9 +64,11 @@ public class SessionAuthorizationFilterStrategyTest {
             "https://cn.dataone.org/cn",
             Settings.getConfiguration().getString(SETTING_NAME_D1_CN_URL));
         assertNull(Settings.getConfiguration().getString(SETTING_NAME_CN_ADMINS));
+        assertNull(Settings.getConfiguration().getString(SETTING_NAME_SOLR_ADMIN_TOKEN));
         // Set the env variables
         environmentVariablesRule.set(ENV_NAME_D1_CN_URL, CN_SANDBOX_URL);
         environmentVariablesRule.set(ENV_NAME_CN_ADMINS, CN_ADMINS);
+        environmentVariablesRule.set(ENV_NAME_CN_SOLR_ADMIN_TOKEN, TOKEN);
         SessionAuthorizationFilterStrategy.readEnvVariables();
         assertEquals(CN_SANDBOX_URL,
                       Settings.getConfiguration().getString(SETTING_NAME_D1_CN_URL));
@@ -66,6 +76,7 @@ public class SessionAuthorizationFilterStrategyTest {
         admins.add(0, CN_ADMIN1);
         admins.add(1, CN_ADMIN2);
         assertEquals(admins, Settings.getConfiguration().getList(SETTING_NAME_CN_ADMINS));
+        assertEquals(TOKEN, Settings.getConfiguration().getString(SETTING_NAME_SOLR_ADMIN_TOKEN));
     }
 
     /**
