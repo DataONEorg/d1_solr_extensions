@@ -69,6 +69,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     private final static String ENV_NAME_CN_ADMINS = "D1_CN_ADMINS"; // Optional. Separated by ;
     private final static String SETTING_NAME_D1_CN_URL = "D1Client.CN_URL";
     private final static String SETTING_NAME_CN_ADMINS = "cn.administrators";
+    private final static String DEFAULT_CN_URL = "https://cn.dataone.org/cn";
 
     /**
      * Allows concrete implementations of SessionAuthorizationFilterStrategy to determine
@@ -141,7 +142,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     static protected void readEnvVariables() {
         String cnClientUrl = System.getenv(ENV_NAME_D1_CN_URL);
         if (cnClientUrl == null || cnClientUrl.isBlank()) {
-            cnClientUrl = "https://cn.dataone.org/cn";
+            cnClientUrl = DEFAULT_CN_URL;
         }
         logger.debug("Set " + cnClientUrl + " to the settings " + SETTING_NAME_D1_CN_URL);
         Settings.getConfiguration().setProperty(SETTING_NAME_D1_CN_URL, cnClientUrl);
@@ -349,10 +350,11 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * 
      * @returns void
      */
-    private void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
+    protected static void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
         cnAdministrativeSubjects.clear();
         mnAdministrativeSubjects.clear();
         serviceMethodRestrictionSubjects.clear();
+        mnNodeNameToSubjectsMap.clear();
         List<String> nodeAdministrators = Settings.getConfiguration().getList("cn.administrators");
         if (nodeAdministrators != null) {
             for (String administrator : nodeAdministrators) {
@@ -368,9 +370,9 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 // Initialize cnUrl
                 cnNodeUrl = Settings.getConfiguration().getString(SETTING_NAME_D1_CN_URL);
                 if (cnNodeUrl == null || cnNodeUrl.isBlank()) {
-                    // It is still null or blank, throw an exception
-                    throw new ServiceFailure("000", "The CN URL is null. Please check if you "
-                        + "correctly set the environment variable " + ENV_NAME_D1_CN_URL);
+                    logger.debug("No settings for " + SETTING_NAME_D1_CN_URL + ". So it "
+                                     + "uses the default one " + DEFAULT_CN_URL);
+                    cnNodeUrl = DEFAULT_CN_URL;
                 }
                 if (cnNodeUrl.equals("/")) {
                     cnNodeUrl = cnNodeUrl + "v2/node";
@@ -387,10 +389,12 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             // Normalize the XML structure
             doc.getDocumentElement().normalize();
             // Get all <node> elements
-            NodeList nodeList = doc.getElementsByTagName("node");
-            for (int i = 0; i < nodeList.getLength(); i++) {
-                Node nodeItem = nodeList.item(i);
-                if (nodeItem.getNodeType() == Node.ELEMENT_NODE) {
+            Element root = doc.getDocumentElement(); // nodeList
+            NodeList kids = root.getChildNodes();
+            for (int i = 0; i < kids.getLength(); i++) {
+                Node nodeItem = kids.item(i);
+                if (nodeItem.getNodeType() == Node.ELEMENT_NODE && "node".equals(
+                    nodeItem.getNodeName())) {
                     Element nodeElement = (Element) nodeItem;
                     String identifier = getTextContent(nodeElement, "identifier");
                     String type = nodeElement.getAttribute("type");
@@ -398,15 +402,18 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                     // Filter for cn/up or mn/up
                     if (state != null && state.equals(NodeState.UP.xmlValue())) {
                         // Get all subjects
-                        NodeList subjects = nodeElement.getElementsByTagName("subject");
+                        NodeList children = nodeElement.getChildNodes();
                         List<Subject> subjectList = new ArrayList<>();
-                        for (int j = 0; j < subjects.getLength(); j++) {
-                            String subjectStr = subjects.item(j).getTextContent();
-                            Subject subject = new Subject();
-                            subject.setValue(subjectStr);
-                            subjectList.add(subject);
-                            logger.debug(
-                                "Find the subject " + subjectStr + " for node " + identifier);
+                        for (int j = 0; j < children.getLength(); j++) {
+                            Node child = children.item(j);
+                            if (child.getNodeType() == Node.ELEMENT_NODE && "subject".equals(
+                                child.getNodeName())) {
+                                String subjectStr = child.getTextContent();
+                                Subject subject = new Subject();
+                                subject.setValue(subjectStr);
+                                subjectList.add(subject);
+                                logger.debug(
+                                    "Find the subject " + subjectStr + " for node " + identifier);                            }
                         }
                         if (!subjectList.isEmpty() && type != null) {
                             if (type.equals(NodeType.CN.xmlValue())) {
