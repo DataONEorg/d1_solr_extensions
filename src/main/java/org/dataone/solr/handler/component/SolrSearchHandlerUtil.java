@@ -1,20 +1,3 @@
-/**
- * This work was created by participants in the DataONE project, and is jointly copyrighted by participating
- * institutions in DataONE. For more information on DataONE, see our web site at http://dataone.org.
- *
- * Copyright ${year}
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
- * $Id$
- */
 package org.dataone.solr.handler.component;
 
 import java.util.ArrayList;
@@ -35,6 +18,8 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.request.SolrQueryRequest;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.configuration.Settings;
+import org.dataone.solr.servlet.SessionAuthorizationFilterStrategy;
+
 import static org.dataone.solr.handler.component.SolrLoggingHandler.replaceParam;
 
 /**
@@ -54,7 +39,25 @@ public class SolrSearchHandlerUtil {
     private static Log logger = LogFactory.getLog(SolrSearchHandlerUtil.class);
     private static String publicFilterString = "isPublic:true";
     private static String cnAdministratorToken = Settings.getConfiguration().getString(
-            "cn.solrAdministrator.token");
+        SessionAuthorizationFilterStrategy.SETTING_NAME_SOLR_ADMIN_TOKEN);
+    static {
+        if (cnAdministratorToken == null || cnAdministratorToken.isBlank()) {
+            // If we can't find the setting, try to read it from an env variable
+            cnAdministratorToken =
+                System.getenv(SessionAuthorizationFilterStrategy.ENV_NAME_CN_SOLR_ADMIN_TOKEN);
+            if (cnAdministratorToken != null && !cnAdministratorToken.isBlank()) {
+                Settings.getConfiguration().setProperty(
+                    SessionAuthorizationFilterStrategy.SETTING_NAME_SOLR_ADMIN_TOKEN,
+                    cnAdministratorToken);
+                logger.debug("Set token to the setting "
+                                 + SessionAuthorizationFilterStrategy.SETTING_NAME_SOLR_ADMIN_TOKEN);
+            } else {
+                logger.warn("The env variable value of "
+                                + SessionAuthorizationFilterStrategy.ENV_NAME_CN_SOLR_ADMIN_TOKEN
+                                + " is null and please set the env variable.");
+            }
+        }
+    }
     //
     // this string is found in org.apache.solr.servlet.SolrRequestParsers, is is hardcoded and 
     // not publically available from what I can find

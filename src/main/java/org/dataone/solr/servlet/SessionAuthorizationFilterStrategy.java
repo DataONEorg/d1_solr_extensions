@@ -52,10 +52,6 @@ import org.xml.sax.SAXException;
 public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
     protected static Log logger = LogFactory.getLog(SessionAuthorizationFilterStrategy.class);
-
-    private static String adminToken = Settings.getConfiguration().getString(
-            "cn.solrAdministrator.token");
-
     protected static List<Subject> cnAdministrativeSubjects = new ArrayList<Subject>();
     protected static List<Subject> mnAdministrativeSubjects = new ArrayList<Subject>();
     protected static List<Subject> serviceMethodRestrictionSubjects = new ArrayList<Subject>();
@@ -65,11 +61,15 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L; // 5 minutes
     protected static String cnNodeUrl = null;
 
+    public final static String ENV_NAME_CN_SOLR_ADMIN_TOKEN = "D1_CN_SOLR_ADMIN_TOKEN";
     private final static String ENV_NAME_D1_CN_URL = "D1_CN_URL";
     private final static String ENV_NAME_CN_ADMINS = "D1_CN_ADMINS"; // Optional. Separated by ;
+    public final static String SETTING_NAME_SOLR_ADMIN_TOKEN = "cn.solrAdministrator.token";
     private final static String SETTING_NAME_D1_CN_URL = "D1Client.CN_URL";
     private final static String SETTING_NAME_CN_ADMINS = "cn.administrators";
     private final static String DEFAULT_CN_URL = "https://cn.dataone.org/cn";
+
+    private static String adminToken = null;
 
     /**
      * Allows concrete implementations of SessionAuthorizationFilterStrategy to determine
@@ -124,6 +124,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     @Override
     public void init(FilterConfig fc) throws ServletException {
         readEnvVariables();
+        adminToken = Settings.getConfiguration().getString(SETTING_NAME_SOLR_ADMIN_TOKEN);
         try {
             logger.debug("about to cache admin");
             cacheAdministrativeSubjectList();
@@ -144,15 +145,23 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         if (cnClientUrl == null || cnClientUrl.isBlank()) {
             cnClientUrl = DEFAULT_CN_URL;
         }
-        logger.debug("Set " + cnClientUrl + " to the settings " + SETTING_NAME_D1_CN_URL);
         Settings.getConfiguration().setProperty(SETTING_NAME_D1_CN_URL, cnClientUrl);
+        logger.debug("Set " + cnClientUrl + " to the setting " + SETTING_NAME_D1_CN_URL);
         String cnAdminsStr = System.getenv(ENV_NAME_CN_ADMINS);
         if (cnAdminsStr != null && !cnAdminsStr.isBlank()) {
             List<String> cnAdmins = splitTextBySemicolon(cnAdminsStr);
             if (cnAdmins != null) {
-                logger.debug("Set " + cnAdmins + " to the settings " + SETTING_NAME_CN_ADMINS);
                 Settings.getConfiguration().setProperty(SETTING_NAME_CN_ADMINS, cnAdmins);
+                logger.debug("Set " + cnAdmins + " to the setting " + SETTING_NAME_CN_ADMINS);
             }
+        }
+        String solrAdminToken = System.getenv(ENV_NAME_CN_SOLR_ADMIN_TOKEN);
+        if (solrAdminToken != null && !solrAdminToken.isBlank()) {
+            Settings.getConfiguration().setProperty(SETTING_NAME_SOLR_ADMIN_TOKEN, solrAdminToken);
+            logger.debug("Set token to the setting " + SETTING_NAME_SOLR_ADMIN_TOKEN);
+        } else {
+            logger.warn("The env variable value of " + ENV_NAME_CN_SOLR_ADMIN_TOKEN + " is null "
+                            + "and please set the env variable.");
         }
     }
 
@@ -258,9 +267,15 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                         if (cnAdministrativeSubjects.contains(authorizedSubject)) {
                             // set administrative access
                             logger.debug(authorizedSubject.getValue() + " is a cn administrator");
-                            String[] isAdministrativeSubjectValue = { adminToken };
-                            proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
-                                    isAdministrativeSubjectValue);
+                            if (adminToken != null && !adminToken.isBlank()) {
+                                String[] isAdministrativeSubjectValue = { adminToken };
+                                proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
+                                                                isAdministrativeSubjectValue);
+                            } else {
+                                logger.warn("The solr admin token is not set by the env variable "
+                                                + ENV_NAME_CN_SOLR_ADMIN_TOKEN
+                                                + ". So the cn access is disabled.");
+                            }
                         } else if (mnAdministrativeSubjects.contains(authorizedSubject)) {
                             for (String mnIdentifier : mnNodeNameToSubjectsMap.keySet()) {
                                 List<Subject> mnSubjectList = mnNodeNameToSubjectsMap
