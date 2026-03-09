@@ -116,7 +116,7 @@
                                         <exclude>META-INF/eclipse.inf</exclude>
                                         <exclude>WEB-INF/**</exclude>
                                         <exclude>commons-logging.properties</exclude>
-                                        <exclude>log4j.properties</exclude>
+                                        <exclude>log4j2.properties</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
