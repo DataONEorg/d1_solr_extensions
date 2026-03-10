@@ -20,6 +20,7 @@
         <d1_test_resources.version>2.3.0</d1_test_resources.version>
         <spring.version>5.3.39</spring.version>
         <log4j.version>2.25.3</log4j.version>
+        <httpclient.version>4.5.14</httpclient.version>
     </properties>
     <build>
         <defaultGoal>install</defaultGoal>
@@ -97,11 +98,20 @@
                                     <exclude>commons-fileupload</exclude>
                                     <exclude>xml-apis</exclude>
                                     <exclude>javax.servlet</exclude>
-                                    <exclude>org.apache.httpcomponents:httpclient</exclude>
                                     <exclude>commons-logging:commons-logging</exclude>
                                     <exclude>log4j:log4j</exclude>
                                     <exclude>org.slf4j:*</exclude>
                                     <exclude>org.apache.logging.log4j:*</exclude>
+                                    <!-- Apache HttpComponents -->
+                                    <exclude>org.apache.httpcomponents:httpclient</exclude>
+                                    <exclude>org.apache.httpcomponents:httpcore</exclude>
+                                    <exclude>org.apache.httpcomponents:httpmime</exclude>
+
+                                    <!-- Jetty HTTP2 -->
+                                    <exclude>org.eclipse.jetty.http2:http2-client</exclude>
+                                    <exclude>org.eclipse.jetty.http2:http2-common</exclude>
+                                    <exclude>org.eclipse.jetty.http2:http2-hpack</exclude>
+                                    <exclude>org.eclipse.jetty.http2:http2-http-client-transport</exclude>
                                 </excludes>
                             </artifactSet>
 
@@ -416,6 +426,28 @@
             <groupId>uk.org.webcompere</groupId>
             <artifactId>system-stubs-junit4</artifactId>
             <version>2.1.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient-cache</artifactId>
+            <version>${httpclient.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>${httpclient.version}</version>
+        </dependency>
+        <!-- API, java.xml.bind module -->
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>2.3.2</version>
+        </dependency>
+        <!-- Runtime, com.sun.xml.bind module -->
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <version>2.3.2</version>
         </dependency>
     </dependencies>
 </project>
