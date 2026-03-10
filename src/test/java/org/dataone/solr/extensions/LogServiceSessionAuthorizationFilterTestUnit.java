@@ -29,8 +29,10 @@ import org.dataone.cn.web.mock.MockServlet;
 import org.dataone.cn.web.mock.MockWebApplicationContextLoader;
 import org.dataone.configuration.Settings;
 import org.dataone.solr.servlet.LogServiceSessionAuthorizationFilter;
+import org.dataone.solr.servlet.SessionAuthorizationFilterStrategyTest;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.core.io.FileSystemResourceLoader;
@@ -42,6 +44,7 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.mock.web.PassThroughFilterChain;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import uk.org.webcompere.systemstubs.rules.EnvironmentVariablesRule;
 
 /**
  * Unit test for simple App.
@@ -56,8 +59,10 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
     private X509CertificateGenerator x509CertificateGenerator;
     private String primarySubject = Settings.getConfiguration().getString(
             "testIdentity.primarySubject");
-    private String administratorToken = Settings.getConfiguration().getString(
-            "cn.solrAdministrator.token");
+    private String administratorToken = "testest";
+
+    @Rule
+    public EnvironmentVariablesRule environmentVariablesRule2 = new EnvironmentVariablesRule();
 
     // private NodeLdapPopulation cnLdapPopulation;
 
@@ -78,6 +83,9 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
 
     @Before
     public void before() throws Exception {
+        environmentVariablesRule2.set(
+            SessionAuthorizationFilterStrategyTest.ENV_NAME_CN_SOLR_ADMIN_TOKEN,
+            administratorToken);
         cnLdapPopulation.populateTestCN();
         subjectLdapPopulation.populateTestIdentities();
     }
@@ -86,6 +94,8 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
     public void after() throws Exception {
         cnLdapPopulation.deletePopulatedNodes();
         subjectLdapPopulation.deletePopulatedSubjects();
+        environmentVariablesRule2.set(
+            SessionAuthorizationFilterStrategyTest.ENV_NAME_CN_SOLR_ADMIN_TOKEN, null);
     }
 
     @Test
@@ -110,7 +120,6 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
     // no parameters should be set indicating public access only
     @Test
     public void testDoPublicFilter() throws FileNotFoundException {
-
         HashMap<String, String[]> params = new HashMap<String, String[]>();
         BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params, null);
 
