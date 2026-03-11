@@ -32,6 +32,7 @@ import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
 import org.dataone.portal.PortalCertificateManager;
 import org.dataone.service.exceptions.BaseException;
+import org.dataone.service.exceptions.InvalidToken;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotImplemented;
 import org.dataone.service.exceptions.ServiceFailure;
@@ -116,7 +117,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      */
     protected abstract void addAuthenticatedSubjectsToRequest(
             ProxyServletRequestWrapper proxyRequest, Session session, Subject authorizedSubject)
-            throws ServiceFailure, NotAuthorized, NotImplemented;
+        throws ServiceFailure, NotAuthorized, NotImplemented, InvalidToken;
 
     /**
      * The service name to look up for additional admin users defined for the services service method restrictions.

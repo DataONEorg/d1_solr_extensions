@@ -1,20 +1,3 @@
-/**
- * This work was created by participants in the DataONE project, and is jointly copyrighted by participating
- * institutions in DataONE. For more information on DataONE, see our web site at http://dataone.org.
- *
- * Copyright ${year}
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
- * $Id$
- */
 package org.dataone.solr.servlet;
 
 import java.io.ByteArrayInputStream;
@@ -37,10 +20,11 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataone.client.auth.CertificateManager;
+import org.dataone.client.v2.itk.D1Client;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.portal.PortalCertificateManager;
-import org.dataone.service.cn.impl.v2.CNIdentityLDAPImpl;
+import org.dataone.service.exceptions.InvalidToken;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotFound;
 import org.dataone.service.exceptions.NotImplemented;
@@ -61,7 +45,9 @@ import org.dataone.service.util.Constants;
 public class SessionAuthorizationUtil {
 
     protected static Log logger = LogFactory.getLog(SessionAuthorizationUtil.class);
-    private static final CNIdentityLDAPImpl identityService = new CNIdentityLDAPImpl();
+    static {
+        SessionAuthorizationFilterStrategy.getCnClientUrl();
+    }
 
     /**
      * The request attribute under which we store the array of X509Certificate objects representing the certificate
@@ -133,8 +119,8 @@ public class SessionAuthorizationUtil {
     }
 
     public static void addAuthenticatedSubjectsToRequest(ProxyServletRequestWrapper proxyRequest,
-            Session session, Subject authorizedSubject) throws ServiceFailure, NotAuthorized,
-            NotImplemented {
+            Session session, Subject authorizedSubject)
+        throws ServiceFailure, NotAuthorized, NotImplemented, InvalidToken {
         List<String> authorizedSubjects = new ArrayList<String>();
         // add into the list the public subject and authenticated
         // subject psuedo users since they will be indexed as subjects allowable
@@ -144,7 +130,7 @@ public class SessionAuthorizationUtil {
 
         SubjectInfo authorizedSubjectInfo = null;
         try {
-            authorizedSubjectInfo = identityService.getSubjectInfo(session, authorizedSubject);
+            authorizedSubjectInfo = D1Client.getCN().getSubjectInfo(null, authorizedSubject);
         } catch (NotFound e) {
             // if problem getting the subjectInfo, use the
             // subjectInfo provided with the certificate.
@@ -152,14 +138,17 @@ public class SessionAuthorizationUtil {
             // XXX if the subject has had all rights revoked or for some reason
             // removed from the system, then this call will allow information
             // provided in the certificate to override changes to the system
+            logger.info(
+                "The subject info wasn't found for the subject " + authorizedSubject.getValue()
+                    + ". So just the subject in the certificates will be used.");
             authorizedSubjectInfo = session.getSubjectInfo();
         }
         if (authorizedSubjectInfo == null) {
             String standardizedName = authorizedSubject.getValue();
             try {
-            	standardizedName = CertificateManager.getInstance().standardizeDN(standardizedName);
+                standardizedName = CertificateManager.getInstance().standardizeDN(standardizedName);
             } catch (Exception e) {
-            	// is not valid DN
+                // is not valid DN
                 // so the unstandardized name is added...
             }
             authorizedSubjects.add(standardizedName);
@@ -171,13 +160,15 @@ public class SessionAuthorizationUtil {
                     if (Constants.SUBJECT_VERIFIED_USER.equals(subject.getValue())) {
                         authorizedSubjects.add(Constants.SUBJECT_VERIFIED_USER);
                     } else {
-                    	String standardizedName = subject.getValue();
+                        String standardizedName = subject.getValue();
                         try {
-	                    	standardizedName = CertificateManager.getInstance().standardizeDN(
-	                                subject.getValue());
+                            standardizedName = CertificateManager.getInstance().standardizeDN(
+                                    subject.getValue());
                         } catch (Exception e) {
-                        	logger.warn("Could not standardize DN for: " + standardizedName, e);
+                            logger.warn("Could not standardize DN for: " + standardizedName, e);
                         }
+                        logger.debug("Add " + standardizedName + " into the authorized subject "
+                                         + "list");
                         authorizedSubjects.add(standardizedName);
                     }
                 }
