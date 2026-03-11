@@ -1,7 +1,12 @@
 package org.dataone.solr.servlet;
 
 import java.io.IOException;
-import java.net.URL;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -40,6 +45,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+
 /**
  * Strategy for a pre-filter to SolrDispatchFilter. The strategy defines how to set authorization
  * information in a wrapped request's parameter map
@@ -70,8 +76,11 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     private final static String SETTING_NAME_D1_CN_URL = "D1Client.CN_URL";
     private final static String SETTING_NAME_CN_ADMINS = "cn.administrators";
     private final static String DEFAULT_CN_URL = "https://cn.dataone.org/cn";
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+                                                    .connectTimeout(Duration.ofSeconds(10)).build();
 
     private static String adminToken = null;
+
 
     /**
      * Allows concrete implementations of SessionAuthorizationFilterStrategy to determine
@@ -215,6 +224,29 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             }
         }
         return list;
+    }
+
+    /**
+     * A util method to get response input stream from the given url
+     * @param url  the url will be sent the request
+     * @return the response input stream
+     * @throws ServiceFailure
+     */
+    public static InputStream getResponse(String url) throws ServiceFailure {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url)).GET().build();
+        HttpResponse<InputStream> response = null;
+        try {
+            response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        } catch (IOException e) {
+            throw new ServiceFailure("0000", "Cannot get the response from " + url + " since "
+                + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ServiceFailure("0000", "Cannot get the response from " + url + " since "
+                + e.getMessage());
+        }
+        return response.body();
     }
 
     /**
@@ -414,50 +446,54 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         try {
             setCnNodeListUrl();
             logger.debug("The cn node list url is " + cnNodeListUrl);
-            URL url = new URL(cnNodeListUrl);
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.parse(url.openStream());
-            // Normalize the XML structure
-            doc.getDocumentElement().normalize();
-            // Get all <node> elements
-            Element root = doc.getDocumentElement(); // nodeList
-            NodeList kids = root.getChildNodes();
-            for (int i = 0; i < kids.getLength(); i++) {
-                Node nodeItem = kids.item(i);
-                if (nodeItem.getNodeType() == Node.ELEMENT_NODE && "node".equals(
-                    nodeItem.getNodeName())) {
-                    Element nodeElement = (Element) nodeItem;
-                    String identifier = getTextContent(nodeElement, "identifier");
-                    String type = nodeElement.getAttribute("type");
-                    String state = nodeElement.getAttribute("state");
-                    // Filter for cn/up or mn/up
-                    if (state != null && state.equals(NodeState.UP.xmlValue())) {
-                        // Get all subjects
-                        NodeList children = nodeElement.getChildNodes();
-                        List<Subject> subjectList = new ArrayList<>();
-                        for (int j = 0; j < children.getLength(); j++) {
-                            Node child = children.item(j);
-                            if (child.getNodeType() == Node.ELEMENT_NODE && "subject".equals(
-                                child.getNodeName())) {
-                                String subjectStr = child.getTextContent();
-                                Subject subject = new Subject();
-                                subject.setValue(subjectStr);
-                                subjectList.add(subject);
-                                logger.debug(
-                                    "Find the subject " + subjectStr + " for node " + identifier);                            }
-                        }
-                        if (!subjectList.isEmpty() && type != null) {
-                            if (type.equals(NodeType.CN.xmlValue())) {
-                                logger.debug("Put all found subjects for CN " + identifier + " "
-                                                 + "into the cn admin subject list.");
-                                cnAdministrativeSubjects.addAll(subjectList);
-                            } else if (type.equals(NodeType.MN.xmlValue())) {
-                                logger.debug("Put all found subjects for CN " + identifier + " "
-                                                 + "into the cn admin subject list.");
-                                mnAdministrativeSubjects.addAll(subjectList);
-                                mnNodeNameToSubjectsMap.put(identifier, subjectList);
+            try (InputStream response = getResponse(cnNodeListUrl)) {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setNamespaceAware(true);
+                factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+                factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+                factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+                DocumentBuilder builder = factory.newDocumentBuilder();
+                Document doc = builder.parse(response);
+                // Normalize the XML structure
+                doc.getDocumentElement().normalize();
+                // Get all <node> elements
+                Element root = doc.getDocumentElement(); // nodeList
+                NodeList kids = root.getChildNodes();
+                for (int i = 0; i < kids.getLength(); i++) {
+                    Node nodeItem = kids.item(i);
+                    if (nodeItem.getNodeType() == Node.ELEMENT_NODE && "node".equals(
+                        nodeItem.getNodeName())) {
+                        Element nodeElement = (Element) nodeItem;
+                        String identifier = getTextContent(nodeElement, "identifier");
+                        String type = nodeElement.getAttribute("type");
+                        String state = nodeElement.getAttribute("state");
+                        // Filter for cn/up or mn/up
+                        if (state != null && state.equals(NodeState.UP.xmlValue())) {
+                            // Get all subjects
+                            NodeList children = nodeElement.getChildNodes();
+                            List<Subject> subjectList = new ArrayList<>();
+                            for (int j = 0; j < children.getLength(); j++) {
+                                Node child = children.item(j);
+                                if (child.getNodeType() == Node.ELEMENT_NODE && "subject".equals(
+                                    child.getNodeName())) {
+                                    String subjectStr = child.getTextContent();
+                                    Subject subject = new Subject();
+                                    subject.setValue(subjectStr);
+                                    subjectList.add(subject);
+                                    logger.debug(
+                                        "Find the subject " + subjectStr + " for node " + identifier);                            }
+                            }
+                            if (!subjectList.isEmpty() && type != null) {
+                                if (type.equals(NodeType.CN.xmlValue())) {
+                                    logger.debug("Put all found subjects for CN " + identifier + " "
+                                                     + "into the cn admin subject list.");
+                                    cnAdministrativeSubjects.addAll(subjectList);
+                                } else if (type.equals(NodeType.MN.xmlValue())) {
+                                    logger.debug("Put all found subjects for MN " + identifier + " "
+                                                     + "into the mn admin subject list.");
+                                    mnAdministrativeSubjects.addAll(subjectList);
+                                    mnNodeNameToSubjectsMap.put(identifier, subjectList);
+                                }
                             }
                         }
                     }
