@@ -59,7 +59,9 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         List<Subject>>();
     private long lastRefreshTimeMS = 0L;
     private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L; // 5 minutes
-    protected static String cnNodeUrl = null;
+    protected static String cnClientUrl = null;
+    // The cn url which lists the nodes registered in cn. It will be cnClientUrl + "/v2/node"
+    protected static String cnNodeListUrl = null;
 
     public final static String ENV_NAME_CN_SOLR_ADMIN_TOKEN = "D1_CN_SOLR_ADMIN_TOKEN";
     private final static String ENV_NAME_D1_CN_URL = "D1_CN_URL";
@@ -141,12 +143,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * Read the environmental variables and set them in the settings
      */
     static protected void readEnvVariables() {
-        String cnClientUrl = System.getenv(ENV_NAME_D1_CN_URL);
-        if (cnClientUrl == null || cnClientUrl.isBlank()) {
-            cnClientUrl = DEFAULT_CN_URL;
-        }
-        Settings.getConfiguration().setProperty(SETTING_NAME_D1_CN_URL, cnClientUrl);
-        logger.debug("Set " + cnClientUrl + " to the setting " + SETTING_NAME_D1_CN_URL);
+        getCnClientUrl();// Set cnClientUrl from an env variable if it is null
         String cnAdminsStr = System.getenv(ENV_NAME_CN_ADMINS);
         if (cnAdminsStr != null && !cnAdminsStr.isBlank()) {
             List<String> cnAdmins = splitTextBySemicolon(cnAdminsStr);
@@ -162,6 +159,40 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         } else {
             logger.warn("The env variable value of " + ENV_NAME_CN_SOLR_ADMIN_TOKEN + " is null "
                             + "and please set the env variable.");
+        }
+    }
+
+    /**
+     * Get the cnClientUrl. If it is not null, just return it. If it is null, try to read it from
+     * an environmental variable; if it cannot be read, set it to the default value, which is the
+     * production cn. And also set the setting value with it.
+     * @return the cnClientUrl. It can't be null
+     */
+    public static String getCnClientUrl() {
+        if (cnClientUrl == null || cnClientUrl.isBlank()) {
+            cnClientUrl = System.getenv(ENV_NAME_D1_CN_URL);
+            if (cnClientUrl == null || cnClientUrl.isBlank()) {
+                logger.debug("Cannot get the cnClientUrl from the env variable " + ENV_NAME_D1_CN_URL
+                                 + " . So set it with the default value " + DEFAULT_CN_URL);
+                cnClientUrl = DEFAULT_CN_URL;
+            }
+            Settings.getConfiguration().setProperty(SETTING_NAME_D1_CN_URL, cnClientUrl);
+            logger.debug("Set " + cnClientUrl + " to the setting " + SETTING_NAME_D1_CN_URL);
+        }
+        return cnClientUrl;
+    }
+
+    /**
+     * Set the cnNodeListUrl base on cnClientUrl
+     */
+    public static void setCnNodeListUrl() {
+        if (cnNodeListUrl == null || cnNodeListUrl.isBlank()) {
+            getCnClientUrl();
+            if (cnClientUrl.endsWith("/")) {
+                cnNodeListUrl = cnClientUrl + "v2/node";
+            } else {
+                cnNodeListUrl = cnClientUrl + "/v2/node";
+            }
         }
     }
 
@@ -381,22 +412,9 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         }
         // Parse the node information from the result of the cnNodeUrl
         try {
-            if (cnNodeUrl == null || cnNodeUrl.isBlank()) {
-                // Initialize cnUrl
-                cnNodeUrl = Settings.getConfiguration().getString(SETTING_NAME_D1_CN_URL);
-                if (cnNodeUrl == null || cnNodeUrl.isBlank()) {
-                    logger.debug("No settings for " + SETTING_NAME_D1_CN_URL + ". So it "
-                                     + "uses the default one " + DEFAULT_CN_URL);
-                    cnNodeUrl = DEFAULT_CN_URL;
-                }
-                if (cnNodeUrl.equals("/")) {
-                    cnNodeUrl = cnNodeUrl + "v2/node";
-                } else {
-                    cnNodeUrl = cnNodeUrl + "/v2/node";
-                }
-            }
-            logger.debug("The cn node url is " + cnNodeUrl);
-            URL url = new URL(cnNodeUrl);
+            setCnNodeListUrl();
+            logger.debug("The cn node list url is " + cnNodeListUrl);
+            URL url = new URL(cnNodeListUrl);
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
             DocumentBuilder builder = factory.newDocumentBuilder();

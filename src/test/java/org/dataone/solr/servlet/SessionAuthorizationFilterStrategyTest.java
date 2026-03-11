@@ -50,7 +50,8 @@ public class SessionAuthorizationFilterStrategyTest {
         Settings.getConfiguration().clearProperty(SETTING_NAME_D1_CN_URL);
         Settings.getConfiguration().clearProperty(SETTING_NAME_CN_ADMINS);
         Settings.getConfiguration().clearProperty(SETTING_NAME_SOLR_ADMIN_TOKEN);
-        SessionAuthorizationFilterStrategy.cnNodeUrl = null;
+        SessionAuthorizationFilterStrategy.cnClientUrl = null;
+        SessionAuthorizationFilterStrategy.cnNodeListUrl = null;
     }
     /**
      * Test the readEnvVariables method
@@ -66,6 +67,7 @@ public class SessionAuthorizationFilterStrategyTest {
         assertNull(Settings.getConfiguration().getString(SETTING_NAME_CN_ADMINS));
         assertNull(Settings.getConfiguration().getString(SETTING_NAME_SOLR_ADMIN_TOKEN));
         // Set the env variables
+        SessionAuthorizationFilterStrategy.cnClientUrl = null;
         environmentVariablesRule.set(ENV_NAME_D1_CN_URL, CN_SANDBOX_URL);
         environmentVariablesRule.set(ENV_NAME_CN_ADMINS, CN_ADMINS);
         environmentVariablesRule.set(ENV_NAME_CN_SOLR_ADMIN_TOKEN, TOKEN);
@@ -108,7 +110,7 @@ public class SessionAuthorizationFilterStrategyTest {
     public void testCacheAdministrativeSubjectList() throws Exception {
         SessionAuthorizationFilterStrategy.cacheAdministrativeSubjectList();
         assertEquals(
-            "https://cn.dataone.org/cn/v2/node", SessionAuthorizationFilterStrategy.cnNodeUrl);
+            "https://cn.dataone.org/cn/v2/node", SessionAuthorizationFilterStrategy.cnNodeListUrl);
         assertEquals(3, SessionAuthorizationFilterStrategy.cnAdministrativeSubjects.size());
         Subject cnSubject = new Subject();
         cnSubject.setValue("CN=urn:node:CN,DC=dataone,DC=org");
@@ -142,12 +144,13 @@ public class SessionAuthorizationFilterStrategyTest {
         // Set the env variables
         environmentVariablesRule.set(ENV_NAME_D1_CN_URL, CN_SANDBOX_URL);
         environmentVariablesRule.set(ENV_NAME_CN_ADMINS, CN_ADMINS);
-        SessionAuthorizationFilterStrategy.cnNodeUrl = null; //Clear the url
+        SessionAuthorizationFilterStrategy.cnClientUrl = null; //Clear the url
+        SessionAuthorizationFilterStrategy.cnNodeListUrl = null; //Clear the url
         SessionAuthorizationFilterStrategy.readEnvVariables();
         SessionAuthorizationFilterStrategy.cacheAdministrativeSubjectList();
         assertEquals(
             "https://cn-sandbox.test.dataone.org/cn/v2/node",
-            SessionAuthorizationFilterStrategy.cnNodeUrl);
+            SessionAuthorizationFilterStrategy.cnNodeListUrl);
         assertEquals(5, SessionAuthorizationFilterStrategy.cnAdministrativeSubjects.size());
         Subject cnSubject = new Subject();
         cnSubject.setValue("CN=urn:node:cnSandbox,DC=dataone,DC=org");
