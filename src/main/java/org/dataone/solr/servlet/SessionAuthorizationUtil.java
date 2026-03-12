@@ -166,7 +166,7 @@ public class SessionAuthorizationUtil {
                                     subject.getValue());
                         } catch (Exception e) {
                             logger.warn(
-                                "Could not standardize DN for: " + standardizedName + "since "
+                                "Could not standardize DN for: " + standardizedName + " since "
                                     + e.getMessage());
                         }
                         logger.debug("Add " + standardizedName + " into the authorized subject "
