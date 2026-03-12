@@ -17,8 +17,7 @@ import org.dataone.service.exceptions.ServiceFailure;
 import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 
-public class SearchServiceSessionAuthorizationFilter extends SessionAuthorizationFilterStrategy
-        implements Filter {
+public class SearchServiceSessionAuthorizationFilter extends SessionAuthorizationFilterStrategy {
 
     protected static Log logger = LogFactory.getLog(SearchServiceSessionAuthorizationFilter.class);
 

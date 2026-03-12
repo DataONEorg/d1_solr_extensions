@@ -17,8 +17,7 @@ import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
 
 
-public class LogServiceSessionAuthorizationFilter extends SessionAuthorizationFilterStrategy
-        implements Filter {
+public class LogServiceSessionAuthorizationFilter extends SessionAuthorizationFilterStrategy {
 
     protected static Log logger = LogFactory.getLog(LogServiceSessionAuthorizationFilter.class);
     @Override
