@@ -21,8 +21,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataone.client.auth.CertificateManager;
 import org.dataone.cn.auth.X509CertificateGenerator;
-import org.dataone.cn.ldap.v1.NodeLdapPopulation;
-import org.dataone.cn.ldap.v1.SubjectLdapPopulation;
 import org.dataone.cn.servlet.http.BufferedServletResponseWrapper;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.web.mock.MockServlet;
@@ -54,8 +52,6 @@ import uk.org.webcompere.systemstubs.rules.EnvironmentVariablesRule;
         "classpath:/webapp/mockController-beans.xml" }, loader = MockWebApplicationContextLoader.class)
 public class LogServiceSessionAuthorizationFilterTestUnit {
     public static Log log = LogFactory.getLog(LogServiceSessionAuthorizationFilterTestUnit.class);
-    private NodeLdapPopulation cnLdapPopulation;
-    private SubjectLdapPopulation subjectLdapPopulation;
     private X509CertificateGenerator x509CertificateGenerator;
     private String primarySubject = Settings.getConfiguration().getString(
             "testIdentity.primarySubject");
@@ -64,17 +60,6 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
     @Rule
     public EnvironmentVariablesRule environmentVariablesRule2 = new EnvironmentVariablesRule();
 
-    // private NodeLdapPopulation cnLdapPopulation;
-
-    @Resource
-    public void setCNLdapPopulation(NodeLdapPopulation ldapPopulation) {
-        this.cnLdapPopulation = ldapPopulation;
-    }
-
-    @Resource
-    public void setCNLdapPopulation(SubjectLdapPopulation subjectLdapPopulation) {
-        this.subjectLdapPopulation = subjectLdapPopulation;
-    }
 
     @Resource
     public void setX509CertificateGenerator(X509CertificateGenerator x509CertificateGenerator) {
@@ -86,14 +71,10 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         environmentVariablesRule2.set(
             SessionAuthorizationFilterStrategyTest.ENV_NAME_CN_SOLR_ADMIN_TOKEN,
             administratorToken);
-        cnLdapPopulation.populateTestCN();
-        subjectLdapPopulation.populateTestIdentities();
     }
 
     @After
     public void after() throws Exception {
-        cnLdapPopulation.deletePopulatedNodes();
-        subjectLdapPopulation.deletePopulatedSubjects();
         environmentVariablesRule2.set(
             SessionAuthorizationFilterStrategyTest.ENV_NAME_CN_SOLR_ADMIN_TOKEN, null);
     }
@@ -186,8 +167,6 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length > 0);
 
         String content = new String(responseWrapper.getBuffer());
-        //        assertThat("response should contain NotAuthorized", content,
-        //                containsString("NotAuthorized"));
         assertThat("response should contain " + primarySubject, content,
                 containsString(primarySubject));
     }
@@ -196,7 +175,8 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
     // only CNs have administrative rights to logging
     @Test
     public void testDoAdministrativeSubjectFilter() throws Exception {
-        x509CertificateGenerator.storeSelfSignedCertificate("urn:node:CN");
+        x509CertificateGenerator.storeSelfSignedCertificate(
+            Settings.getConfiguration().getString("testIdentity.adminSubjectCN"));
         X509Certificate certificate[] = { CertificateManager.getInstance().loadCertificate() };
         HashMap<String, String[]> params = new HashMap<String, String[]>();
         BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params,

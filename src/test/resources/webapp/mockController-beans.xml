@@ -11,16 +11,7 @@
         http://www.springframework.org/schema/util
         http://www.springframework.org/schema/util/spring-util-2.0.xsd">
 
-    <spring:bean id="contextSourceConfiguration" class="org.dataone.cn.ldap.v1.ContextSourceConfiguration" />
-
-    <spring:bean id="contextSource" class="org.springframework.ldap.core.support.LdapContextSource"
-        factory-bean="contextSourceConfiguration" factory-method="getLdapContextSource" />
-        
-    <spring:bean id="ldapTemplate" class="org.springframework.ldap.core.LdapTemplate">
-        <spring:constructor-arg ref="contextSource" />
-    </spring:bean>
 
     <context:annotation-config/>
-    <context:component-scan base-package="org.dataone.cn.ldap.v1" />
     <context:component-scan base-package="org.dataone.cn.auth" />
 </spring:beans>
