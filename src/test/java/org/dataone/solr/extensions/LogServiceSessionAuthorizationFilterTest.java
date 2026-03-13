@@ -51,8 +51,8 @@ import uk.org.webcompere.systemstubs.rules.EnvironmentVariablesRule;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:/webapp/mockController-dispatcher.xml",
         "classpath:/webapp/mockController-beans.xml" }, loader = MockWebApplicationContextLoader.class)
-public class LogServiceSessionAuthorizationFilterTestUnit {
-    public static Log log = LogFactory.getLog(LogServiceSessionAuthorizationFilterTestUnit.class);
+public class LogServiceSessionAuthorizationFilterTest {
+    public static Log log = LogFactory.getLog(LogServiceSessionAuthorizationFilterTest.class);
     private X509CertificateGenerator x509CertificateGenerator;
     private String primarySubject = Settings.getConfiguration().getString(
             "testIdentity.primarySubject");
