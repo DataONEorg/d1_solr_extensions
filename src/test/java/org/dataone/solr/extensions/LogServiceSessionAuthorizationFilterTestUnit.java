@@ -20,6 +20,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataone.client.auth.CertificateManager;
+import org.dataone.cn.auth.JwtTokenGenerator;
 import org.dataone.cn.auth.X509CertificateGenerator;
 import org.dataone.cn.servlet.http.BufferedServletResponseWrapper;
 import org.dataone.cn.servlet.http.ParameterKeys;
@@ -102,7 +103,8 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
     @Test
     public void testDoPublicFilter() throws FileNotFoundException {
         HashMap<String, String[]> params = new HashMap<String, String[]>();
-        BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params, null);
+        BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params, null,
+                                                                      null);
 
         // examine contents of the response
         String content = new String(responseWrapper.getBuffer());
@@ -123,7 +125,7 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         params.put(ParameterKeys.IS_CN_ADMINISTRATOR, values);
         BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log?"
                 + ParameterKeys.AUTHORIZED_SUBJECTS + "=cn%3Dtesttest,dc%3Ddataone,dc%3Dorg",
-                params, null);
+                params, null, null);
         String content = new String(responseWrapper.getBuffer());
         log.info(content);
         // examine contents of the response
@@ -142,7 +144,7 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         X509Certificate certificate[] = { CertificateManager.getInstance().loadCertificate() };
         HashMap<String, String[]> params = new HashMap<String, String[]>();
         BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params,
-                certificate);
+                certificate, null);
 
         // examine contents of the response
         assertTrue("response is not empty", responseWrapper.getBufferSize() > 0);
@@ -162,7 +164,7 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         X509Certificate certificate[] = { CertificateManager.getInstance().loadCertificate() };
         HashMap<String, String[]> params = new HashMap<String, String[]>();
         BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params,
-                certificate);
+                certificate, null);
 
         // examine contents of the response
         assertTrue("response is not empty", responseWrapper.getBufferSize() > 0);
@@ -175,9 +177,42 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
 
     }
 
+    /**
+     * Test the filter with a request having a jwt token
+     * @throws Exception
+     */
+    @Test
+    public void testDoTokenWithGroupsSubjectFilter() throws Exception {
+        String token =
+            JwtTokenGenerator.getInstance().generateToken(Settings.getConfiguration().getString(
+                "testIdentity.tokenSubject"), "John Smith");
+        HashMap<String, String[]> params = new HashMap<String, String[]>();
+        BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params,
+                                                                      null, token);
+        // examine the content of the response
+        assertTrue("response is not empty", responseWrapper.getBufferSize() > 0);
+        assertTrue("response is greater than 0", responseWrapper.getBuffer().length > 0);
+        String content = new String(responseWrapper.getBuffer());
+        assertThat(
+            "Response should contain the token subject " + Settings.getConfiguration().getString(
+                       "testIdentity.tokenSubject"), content,
+                   containsString(Settings.getConfiguration().getString(
+                       "testIdentity.tokenSubject")));
+        assertThat(
+            "Response should contain the group subject " + Settings.getConfiguration().getString(
+                "testIdentity.tokenGroup"), content,
+            containsString(Settings.getConfiguration().getString(
+                "testIdentity.tokenGroup")));
+        assertThat(
+            "Response should contain the equivalent subject " + Settings.getConfiguration().getString(
+                "testIdentity.tokenEquivalentSubject"), content,
+            containsString(Settings.getConfiguration().getString(
+                "testIdentity.tokenEquivalentSubject")));
+    }
+
     // ==========================================================================================================
     private BufferedServletResponseWrapper callDoFilter(String url, Map<String, String[]> params,
-            X509Certificate certificate[]) {
+            X509Certificate certificate[], String token) {
 
         ResourceLoader fsrl = new FileSystemResourceLoader();
         ServletContext sc = new MockServletContext("src/test/webapp", fsrl);
@@ -200,6 +235,9 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         }
         if (!params.isEmpty()) {
             request.addParameters(params);
+        }
+        if (token != null && !token.isBlank()) {
+            request.addHeader("Authorization", "Bearer " + token);
         }
         MockServlet testServlet = new MockServlet();
 
