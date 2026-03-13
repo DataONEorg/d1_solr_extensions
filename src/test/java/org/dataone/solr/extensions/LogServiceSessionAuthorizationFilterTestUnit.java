@@ -109,15 +109,6 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         log.info(content);
         assertTrue("response is not empty", responseWrapper.getBufferSize() == 0);
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length == 0);
-
-        //        assertThat("response should contain NotAuthorized", content,
-        //                containsString("NotAuthorized"));
-
-        // assertTrue("response should be null", responseWrapper.getBufferSize()
-        // == 0);
-        // assertTrue("response should be 0 length",
-        // responseWrapper.getBuffer().toString());
-
     }
 
     // make certain that if someone tries to pass in authorization via
@@ -138,15 +129,6 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         // examine contents of the response
         assertTrue("response is not empty", responseWrapper.getBufferSize() == 0);
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length == 0);
-
-        //        assertThat("response should contain NotAuthorized", content,
-        //                containsString("NotAuthorized"));
-        // examine contents of the response
-        // assertTrue("response should be null", responseWrapper.getBufferSize()
-        // == 0);
-        // assertTrue("response should be 0 length",
-        // responseWrapper.getBuffer().length == 0);
-
     }
 
     // pass in a certificate that contains a subject that
