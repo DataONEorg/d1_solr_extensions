@@ -65,7 +65,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     protected static Map<String, List<Subject>> mnNodeNameToSubjectsMap = new HashMap<String,
         List<Subject>>();
     private long lastRefreshTimeMS = 0L;
-    private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L; // 5 minutes
+    private long nodelistRefreshIntervalSeconds = 120L * 60L * 1000L; // 2 hours
     protected static String cnClientUrl = null;
     // The cn url which lists the nodes registered in cn. It will be cnClientUrl + "/v2/node"
     protected static String cnNodeListUrl = null;
