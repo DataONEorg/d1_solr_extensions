@@ -30,7 +30,7 @@ public abstract class QueryEngineDescriptionResponseWriter implements QueryRespo
     private static Log logger = LogFactory.getLog(QueryEngineDescriptionResponseWriter.class);
     private static final String STYLED_RESPONSE_PROP_NAME = "queryEngineDescriptionResponse.styled";
     private static final boolean styledResponse =
-        Settings.getConfiguration().getBoolean(STYLED_RESPONSE_PROP_NAME, true);
+        Settings.getConfiguration().getBoolean(STYLED_RESPONSE_PROP_NAME, false);
 
 
     protected void setD1_XSLT(String D1_XSLT) {
