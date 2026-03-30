@@ -128,20 +128,23 @@ public class SessionAuthorizationUtil {
         authorizedSubjects.add(Constants.SUBJECT_PUBLIC);
         authorizedSubjects.add(Constants.SUBJECT_AUTHENTICATED_USER);
 
-        SubjectInfo authorizedSubjectInfo = null;
-        try {
-            authorizedSubjectInfo = D1Client.getCN().getSubjectInfo(null, authorizedSubject);
-        } catch (NotFound e) {
-            // if problem getting the subjectInfo, use the
-            // subjectInfo provided with the certificate.
+        SubjectInfo authorizedSubjectInfo = session.getSubjectInfo();
+        // If the session doesn't have subject info, we need to get it from the CN api call.
+        if (authorizedSubjectInfo == null) {
+            try {
+                authorizedSubjectInfo = D1Client.getCN().getSubjectInfo(null, authorizedSubject);
+            } catch (NotFound e) {
+                // if problem getting the subjectInfo, use the
+                // subjectInfo provided with the certificate.
 
-            // XXX if the subject has had all rights revoked or for some reason
-            // removed from the system, then this call will allow information
-            // provided in the certificate to override changes to the system
-            logger.info(
-                "The subject info wasn't found for the subject " + authorizedSubject.getValue()
-                    + ". So just the subject in the certificates will be used.");
-            authorizedSubjectInfo = session.getSubjectInfo();
+                // XXX if the subject has had all rights revoked or for some reason
+                // removed from the system, then this call will allow information
+                // provided in the certificate to override changes to the system
+                logger.info(
+                    "The subject info wasn't found for the subject " + authorizedSubject.getValue()
+                        + ". So just the subject in the certificates will be used.");
+                authorizedSubjectInfo = session.getSubjectInfo();
+            }
         }
         if (authorizedSubjectInfo == null) {
             String standardizedName = authorizedSubject.getValue();
