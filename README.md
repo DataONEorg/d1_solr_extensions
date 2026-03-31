@@ -4,7 +4,7 @@ To get **`d1_solr_extensions`** working properly, you need to complete the follo
 
 ## 1. Update Solr Security Policy
 
-Edit the file `/solr-home/server/etc/security.policy` and add the following permissions:
+Edit the file `$SOLR_HOME/server/etc/security.policy` and add the following permissions:
 
 permission java.security.SecurityPermission "putProviderProperty.BC";  
 permission java.net.URLPermission "https://cn.dataone.org/cn/-" "GET";
