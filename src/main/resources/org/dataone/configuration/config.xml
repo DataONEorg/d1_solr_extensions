@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!-- Apache Commons Configuration -->
-<configuration>
-  <header>
-    <result delimiterParsingDisabled="true" forceReloadCheck="true" />
-  </header>
-    <properties fileName="solrExtensions.properties"/>
-</configuration>
