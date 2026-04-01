@@ -5,9 +5,10 @@ To get **`d1_solr_extensions`** working properly, you need to complete the follo
 ## 1. Update Solr Security Policy
 
 Edit the file `$SOLR_HOME/server/etc/security.policy` and add the following permissions:
-
+```
 permission java.security.SecurityPermission "putProviderProperty.BC";  
 permission java.net.URLPermission "https://cn.dataone.org/cn/-" "GET";
+```
 
 **Note:** The `java.net.URLPermission` value may vary depending on the Coordinating Node (CN) environment you are connecting to (e.g., production, staging, or sandbox). Make sure to update the URL accordingly for your target CN instance.
 
