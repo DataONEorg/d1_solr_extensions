@@ -168,7 +168,8 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             logger.debug("Set token to the setting " + SETTING_NAME_SOLR_ADMIN_TOKEN);
         } else {
             logger.warn("The env variable value of " + ENV_NAME_CN_SOLR_ADMIN_TOKEN + " is null "
-                            + "and please set the env variable.");
+                            + "and please set the env variable if you want to enable the CN "
+                            + "subject to be the solr administrator.");
         }
     }
 
