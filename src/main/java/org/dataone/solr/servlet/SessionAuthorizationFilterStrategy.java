@@ -177,9 +177,8 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * Get the cnClientUrl. If it is not null, just return it. If it is null, try to read it from
      * an environmental variable; if it cannot be read, set it to the default value, which is the
      * production cn. And also set the setting value with it.
-     * @return the cnClientUrl. It can't be null
      */
-    public static String getCnClientUrl() {
+    public static void getCnClientUrl() {
         if (cnClientUrl == null || cnClientUrl.isBlank()) {
             cnClientUrl = System.getenv(ENV_NAME_D1_CN_URL);
             if (cnClientUrl == null || cnClientUrl.isBlank()) {
@@ -190,7 +189,6 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
             Settings.getConfiguration().setProperty(SETTING_NAME_D1_CN_URL, cnClientUrl);
             logger.debug("Set " + cnClientUrl + " to the setting " + SETTING_NAME_D1_CN_URL);
         }
-        return cnClientUrl;
     }
 
     /**
