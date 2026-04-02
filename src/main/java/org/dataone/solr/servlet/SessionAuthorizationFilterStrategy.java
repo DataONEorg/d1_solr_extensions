@@ -1,23 +1,12 @@
-/**
- * This work was created by participants in the DataONE project, and is jointly copyrighted by participating
- * institutions in DataONE. For more information on DataONE, see our web site at http://dataone.org.
- *
- * Copyright ${year}
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
- * $Id$
- */
 package org.dataone.solr.servlet;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +21,9 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,23 +31,25 @@ import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
 import org.dataone.portal.PortalCertificateManager;
-import org.dataone.service.cn.v2.NodeRegistryService;
-import org.dataone.service.cn.v2.impl.NodeRegistryServiceImpl;
 import org.dataone.service.exceptions.BaseException;
+import org.dataone.service.exceptions.InvalidToken;
 import org.dataone.service.exceptions.NotAuthorized;
 import org.dataone.service.exceptions.NotImplemented;
 import org.dataone.service.exceptions.ServiceFailure;
 import org.dataone.service.types.v1.NodeState;
 import org.dataone.service.types.v1.NodeType;
-import org.dataone.service.types.v1.Service;
-import org.dataone.service.types.v1.ServiceMethodRestriction;
 import org.dataone.service.types.v1.Session;
 import org.dataone.service.types.v1.Subject;
-import org.dataone.service.types.v2.Node;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
 
 /**
- * Strategy for a pre-filter to SolrDispatchFilter. The strategy defines how to set authorization information in a
- * wrapped request's parameter map
+ * Strategy for a pre-filter to SolrDispatchFilter. The strategy defines how to set authorization
+ * information in a wrapped request's parameter map
  *
  * A DataONE SolrRequestHandler implementation can then create a filter based on the parameters, since
  * SolrRequestHandler does not have access to the request attributes where the session is stored
@@ -65,20 +59,33 @@ import org.dataone.service.types.v2.Node;
 public abstract class SessionAuthorizationFilterStrategy implements Filter {
 
     protected static Log logger = LogFactory.getLog(SessionAuthorizationFilterStrategy.class);
-
-    private static NodeRegistryService nodeRegistryService = new NodeRegistryServiceImpl();
-    private static String adminToken = Settings.getConfiguration().getString(
-            "cn.solrAdministrator.token");
-
-    private List<Subject> cnAdministrativeSubjects = new ArrayList<Subject>();
-    private List<Subject> mnAdministrativeSubjects = new ArrayList<Subject>();
-    private List<Subject> serviceMethodRestrictionSubjects = new ArrayList<Subject>();
-    private Map<String, List<Subject>> mnNodeNameToSubjectsMap = new HashMap<String, List<Subject>>();
+    protected static List<Subject> cnAdministrativeSubjects = new ArrayList<Subject>();
+    protected static List<Subject> mnAdministrativeSubjects = new ArrayList<Subject>();
+    protected static List<Subject> serviceMethodRestrictionSubjects = new ArrayList<Subject>();
+    protected static Map<String, List<Subject>> mnNodeNameToSubjectsMap = new HashMap<String,
+        List<Subject>>();
     private long lastRefreshTimeMS = 0L;
-    private long nodelistRefreshIntervalSeconds = 5L * 60L * 1000L; // 5 minutes
+    private long nodelistRefreshIntervalSeconds = 120L * 60L * 1000L; // 2 hours
+    protected static String cnClientUrl = null;
+    // The cn url which lists the nodes registered in cn. It will be cnClientUrl + "/v2/node"
+    protected static String cnNodeListUrl = null;
+
+    public final static String ENV_NAME_CN_SOLR_ADMIN_TOKEN = "D1_CN_SOLR_ADMIN_TOKEN";
+    private final static String ENV_NAME_D1_CN_URL = "D1_CN_URL";
+    private final static String ENV_NAME_CN_ADMINS = "D1_CN_ADMINS"; // Optional. Separated by ;
+    public final static String SETTING_NAME_SOLR_ADMIN_TOKEN = "cn.solrAdministrator.token";
+    private final static String SETTING_NAME_D1_CN_URL = "D1Client.CN_URL";
+    private final static String SETTING_NAME_CN_ADMINS = "cn.administrators";
+    private final static String DEFAULT_CN_URL = "https://cn.dataone.org/cn";
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+                                                    .connectTimeout(Duration.ofSeconds(10)).build();
+
+    private static String adminToken = null;
+
 
     /**
-     * Allows concrete implementations of SessionAuthorizationFilterStrategy to determine what access (if any) to allow
+     * Allows concrete implementations of SessionAuthorizationFilterStrategy to determine
+     * what access (if any) to allow
      * requests that do have session information available from the dataONE CertificateManager.
      *
      * Called from doFilter
@@ -110,7 +117,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      */
     protected abstract void addAuthenticatedSubjectsToRequest(
             ProxyServletRequestWrapper proxyRequest, Session session, Subject authorizedSubject)
-            throws ServiceFailure, NotAuthorized, NotImplemented;
+        throws ServiceFailure, NotAuthorized, NotImplemented, InvalidToken;
 
     /**
      * The service name to look up for additional admin users defined for the services service method restrictions.
@@ -128,6 +135,8 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      */
     @Override
     public void init(FilterConfig fc) throws ServletException {
+        readEnvVariables();
+        adminToken = Settings.getConfiguration().getString(SETTING_NAME_SOLR_ADMIN_TOKEN);
         try {
             logger.debug("about to cache admin");
             cacheAdministrativeSubjectList();
@@ -138,6 +147,107 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
         }
         lastRefreshTimeMS = new Date().getTime();
         logger.debug("init SessionAuthorizationFilter: " + this.getClass().getName());
+    }
+
+    /**
+     * Read the environmental variables and set them in the settings
+     */
+    static protected void readEnvVariables() {
+        getCnClientUrl();// Set cnClientUrl from an env variable if it is null
+        String cnAdminsStr = System.getenv(ENV_NAME_CN_ADMINS);
+        if (cnAdminsStr != null && !cnAdminsStr.isBlank()) {
+            List<String> cnAdmins = splitTextBySemicolon(cnAdminsStr);
+            if (cnAdmins != null) {
+                Settings.getConfiguration().setProperty(SETTING_NAME_CN_ADMINS, cnAdmins);
+                logger.debug("Set " + cnAdmins + " to the setting " + SETTING_NAME_CN_ADMINS);
+            }
+        }
+        String solrAdminToken = System.getenv(ENV_NAME_CN_SOLR_ADMIN_TOKEN);
+        if (solrAdminToken != null && !solrAdminToken.isBlank()) {
+            Settings.getConfiguration().setProperty(SETTING_NAME_SOLR_ADMIN_TOKEN, solrAdminToken);
+            logger.debug("Set token to the setting " + SETTING_NAME_SOLR_ADMIN_TOKEN);
+        } else {
+            logger.warn("The env variable value of " + ENV_NAME_CN_SOLR_ADMIN_TOKEN + " is null "
+                            + "and please set the env variable if you want to enable the CN "
+                            + "subject (e.g. \"CN=urn:node:CN,DC=dataone,DC=org\") to be the solr"
+                            + " administrator.");
+        }
+    }
+
+    /**
+     * Get the cnClientUrl. If it is not null, just return it. If it is null, try to read it from
+     * an environmental variable; if it cannot be read, set it to the default value, which is the
+     * production cn. And also set the setting value with it.
+     */
+    public static void getCnClientUrl() {
+        if (cnClientUrl == null || cnClientUrl.isBlank()) {
+            cnClientUrl = System.getenv(ENV_NAME_D1_CN_URL);
+            if (cnClientUrl == null || cnClientUrl.isBlank()) {
+                logger.debug("Cannot get the cnClientUrl from the env variable " + ENV_NAME_D1_CN_URL
+                                 + " . So set it with the default value " + DEFAULT_CN_URL);
+                cnClientUrl = DEFAULT_CN_URL;
+            }
+            Settings.getConfiguration().setProperty(SETTING_NAME_D1_CN_URL, cnClientUrl);
+            logger.debug("Set " + cnClientUrl + " to the setting " + SETTING_NAME_D1_CN_URL);
+        }
+    }
+
+    /**
+     * Set the cnNodeListUrl base on cnClientUrl
+     */
+    public static void setCnNodeListUrl() {
+        if (cnNodeListUrl == null || cnNodeListUrl.isBlank()) {
+            getCnClientUrl();
+            if (cnClientUrl.endsWith("/")) {
+                cnNodeListUrl = cnClientUrl + "v2/node";
+            } else {
+                cnNodeListUrl = cnClientUrl + "/v2/node";
+            }
+        }
+    }
+
+    /**
+     * Split the text which semicolon separates into a list
+     * @param text  the text will be parsed
+     * @return a list string. Null is returned if the text is null or blank
+     */
+    static protected List<String> splitTextBySemicolon(String text) {
+        ArrayList<String> list = null;
+        if (text != null && !text.isBlank()) {
+            list = new ArrayList<>();
+            String[] parts = text.split(";");
+            for (String part : parts) {
+                String value = part.trim();
+                if (!value.isEmpty()) {
+                    logger.debug("add "+ value);
+                    list.add(value);
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * A util method to get response input stream from the given url
+     * @param url  the url will be sent the request
+     * @return the response input stream
+     * @throws ServiceFailure
+     */
+    public static InputStream getResponse(String url) throws ServiceFailure {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url)).GET().build();
+        HttpResponse<InputStream> response = null;
+        try {
+            response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());
+        } catch (IOException e) {
+            throw new ServiceFailure("0000", "Cannot get the response from " + url + " since "
+                + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ServiceFailure("0000", "Cannot get the response from " + url + " since "
+                + e.getMessage());
+        }
+        return response.body();
     }
 
     /**
@@ -221,9 +331,15 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                         if (cnAdministrativeSubjects.contains(authorizedSubject)) {
                             // set administrative access
                             logger.debug(authorizedSubject.getValue() + " is a cn administrator");
-                            String[] isAdministrativeSubjectValue = { adminToken };
-                            proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
-                                    isAdministrativeSubjectValue);
+                            if (adminToken != null && !adminToken.isBlank()) {
+                                String[] isAdministrativeSubjectValue = { adminToken };
+                                proxyRequest.setParameterValues(ParameterKeys.IS_CN_ADMINISTRATOR,
+                                                                isAdministrativeSubjectValue);
+                            } else {
+                                logger.warn("The solr admin token is not set by the env variable "
+                                                + ENV_NAME_CN_SOLR_ADMIN_TOKEN
+                                                + ". So the cn access is disabled.");
+                            }
                         } else if (mnAdministrativeSubjects.contains(authorizedSubject)) {
                             for (String mnIdentifier : mnNodeNameToSubjectsMap.keySet()) {
                                 List<Subject> mnSubjectList = mnNodeNameToSubjectsMap
@@ -313,10 +429,11 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
      * 
      * @returns void
      */
-    private void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
+    protected static void cacheAdministrativeSubjectList() throws NotImplemented, ServiceFailure {
         cnAdministrativeSubjects.clear();
         mnAdministrativeSubjects.clear();
         serviceMethodRestrictionSubjects.clear();
+        mnNodeNameToSubjectsMap.clear();
         List<String> nodeAdministrators = Settings.getConfiguration().getList("cn.administrators");
         if (nodeAdministrators != null) {
             for (String administrator : nodeAdministrators) {
@@ -326,49 +443,75 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 cnAdministrativeSubjects.add(adminSubject);
             }
         }
-        List<Node> nodeList = nodeRegistryService.listNodes().getNodeList();
-        for (Node node : nodeList) {
-            if (node.getType().equals(NodeType.CN) && node.getState().equals(NodeState.UP)) {
-                for (Subject subject : node.getSubjectList()) {
-                    logger.debug("AdminList entry CN subject: " + subject.getValue());
-                }
-                cnAdministrativeSubjects.addAll(node.getSubjectList());
-                List<Service> cnServices = node.getServices().getServiceList();
-                for (Service service : cnServices) {
-                    if (service.getName().equalsIgnoreCase("CNCore")) {
-                        if ((service.getRestrictionList() != null)
-                                && !service.getRestrictionList().isEmpty()) {
-                            List<ServiceMethodRestriction> serviceMethodRestrictionList = service
-                                    .getRestrictionList();
-                            for (ServiceMethodRestriction serviceMethodRestriction : serviceMethodRestrictionList) {
-                                if (serviceMethodRestriction.getMethodName().equalsIgnoreCase(
-                                        getServiceMethodName())) {
-                                    if (serviceMethodRestriction.getSubjectList() != null) {
-                                        serviceMethodRestrictionSubjects
-                                                .addAll(serviceMethodRestriction.getSubjectList());
-                                        for (Subject subject : serviceMethodRestriction
-                                                .getSubjectList()) {
-                                            logger.debug("AdminList entry CN subject: "
-                                                    + subject.getValue());
-                                        }
-                                    }
+        // Parse the node information from the result of the cnNodeUrl
+        try {
+            setCnNodeListUrl();
+            logger.debug("The cn node list url is " + cnNodeListUrl);
+            try (InputStream response = getResponse(cnNodeListUrl)) {
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setNamespaceAware(true);
+                factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+                factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+                factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+                DocumentBuilder builder = factory.newDocumentBuilder();
+                Document doc = builder.parse(response);
+                // Normalize the XML structure
+                doc.getDocumentElement().normalize();
+                // Get all <node> elements
+                Element root = doc.getDocumentElement(); // nodeList
+                NodeList kids = root.getChildNodes();
+                for (int i = 0; i < kids.getLength(); i++) {
+                    Node nodeItem = kids.item(i);
+                    if (nodeItem.getNodeType() == Node.ELEMENT_NODE && "node".equals(
+                        nodeItem.getNodeName())) {
+                        Element nodeElement = (Element) nodeItem;
+                        String identifier = getTextContent(nodeElement, "identifier");
+                        String type = nodeElement.getAttribute("type");
+                        String state = nodeElement.getAttribute("state");
+                        // Filter for cn/up or mn/up
+                        if (state != null && state.equals(NodeState.UP.xmlValue())) {
+                            // Get all subjects
+                            NodeList children = nodeElement.getChildNodes();
+                            List<Subject> subjectList = new ArrayList<>();
+                            for (int j = 0; j < children.getLength(); j++) {
+                                Node child = children.item(j);
+                                if (child.getNodeType() == Node.ELEMENT_NODE && "subject".equals(
+                                    child.getNodeName())) {
+                                    String subjectStr = child.getTextContent();
+                                    Subject subject = new Subject();
+                                    subject.setValue(subjectStr);
+                                    subjectList.add(subject);
+                                    logger.debug(
+                                        "Find the subject " + subjectStr + " for node " + identifier);                            }
+                            }
+                            if (!subjectList.isEmpty() && type != null) {
+                                if (type.equals(NodeType.CN.xmlValue())) {
+                                    logger.debug("Put all found subjects for CN " + identifier + " "
+                                                     + "into the cn admin subject list.");
+                                    cnAdministrativeSubjects.addAll(subjectList);
+                                } else if (type.equals(NodeType.MN.xmlValue())) {
+                                    logger.debug("Put all found subjects for MN " + identifier + " "
+                                                     + "into the mn admin subject list.");
+                                    mnAdministrativeSubjects.addAll(subjectList);
+                                    mnNodeNameToSubjectsMap.put(identifier, subjectList);
                                 }
                             }
                         }
                     }
                 }
             }
-            if (node.getType().equals(NodeType.MN) && node.getState().equals(NodeState.UP)) {
-                if (node.getSubjectList() != null && !(node.getSubjectList().isEmpty())) {
-                    mnAdministrativeSubjects.addAll(node.getSubjectList());
-                    mnNodeNameToSubjectsMap.put(node.getIdentifier().getValue(),
-                            node.getSubjectList());
-                    for (Subject subject : node.getSubjectList()) {
-                        logger.debug("AdminList entry CN subject: " + subject.getValue());
-                    }
-                }
-            }
+        } catch (IOException | ParserConfigurationException | SAXException e) {
+            throw new ServiceFailure("0000", e.getMessage());
         }
+    }
+
+    /* Helper method to get text content of a child element*/
+    private static String getTextContent(Element parent, String tagName) {
+        NodeList list = parent.getElementsByTagName(tagName);
+        if (list.getLength() > 0) {
+            return list.item(0).getTextContent();
+        }
+        return "";
     }
 
     /**
