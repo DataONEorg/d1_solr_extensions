@@ -1,39 +1,20 @@
-/**
- * This work was created by participants in the DataONE project, and is
- * jointly copyrighted by participating institutions in DataONE. For 
- * more information on DataONE, see our web site at http://dataone.org.
- *
- *   Copyright ${year}
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
- * limitations under the License.
- * 
- * $Id$
- */
 package org.dataone.solr.response;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Writer;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.QueryResponseWriter;
 import org.apache.solr.response.SolrQueryResponse;
+import org.dataone.configuration.Settings;
 import org.dataone.exceptions.MarshallingException;
 import org.dataone.service.types.v1_1.QueryEngineDescription;
 import org.dataone.service.util.TypeMarshaller;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 /**
  * Based on solr's XMLResponseWriter and XMLWriter
@@ -46,21 +27,22 @@ public abstract class QueryEngineDescriptionResponseWriter implements QueryRespo
 
     private String D1_XSLT = null;
     private String responseKey;
-    private static Logger logger = LoggerFactory
-            .getLogger(QueryEngineDescriptionResponseWriter.class);
+    private static Log logger = LogFactory.getLog(QueryEngineDescriptionResponseWriter.class);
+    private static final String STYLED_RESPONSE_PROP_NAME = "queryEngineDescriptionResponse.styled";
+    private static final boolean styledResponse =
+        Settings.getConfiguration().getBoolean(STYLED_RESPONSE_PROP_NAME, false);
 
 
-	protected void setD1_XSLT(String D1_XSLT) {
-		this.D1_XSLT = D1_XSLT;
-	}
-	
-	protected void setResponseKey(String responseKey) {
-		this.responseKey = responseKey;
-	}
-	
+    protected void setD1_XSLT(String D1_XSLT) {
+        this.D1_XSLT = D1_XSLT;
+    }
+
+    protected void setResponseKey(String responseKey) {
+        this.responseKey = responseKey;
+    }
+
     @Override
-    public void write(Writer writer, SolrQueryRequest request, SolrQueryResponse response)
-            throws IOException {
+    public void write(Writer writer, SolrQueryRequest request, SolrQueryResponse response) {
 
         QueryEngineDescription qed = (QueryEngineDescription) response.getValues().get(
                 this.responseKey);
@@ -70,7 +52,16 @@ public abstract class QueryEngineDescriptionResponseWriter implements QueryRespo
     private void writeQueryEngineDescription(QueryEngineDescription qed, Writer writer) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         try {
-            TypeMarshaller.marshalTypeToOutputStream(qed, os, D1_XSLT);
+            if (styledResponse) {
+                logger.debug("Since setting of " + STYLED_RESPONSE_PROP_NAME + " is true, it"
+                                 + " returns a styled response.");
+                TypeMarshaller.marshalTypeToOutputStream(qed, os, D1_XSLT);
+            } else {
+                logger.debug("Since setting of " + STYLED_RESPONSE_PROP_NAME + " is false, it"
+                                 + " returns an unstyled response.");
+                TypeMarshaller.marshalTypeToOutputStream(qed, os);
+            }
+
         } catch (MarshallingException jibxEx) {
             logger.error(jibxEx.getMessage(), jibxEx);
         } catch (IOException ioEx) {

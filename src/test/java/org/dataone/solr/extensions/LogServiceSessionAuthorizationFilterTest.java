@@ -1,25 +1,3 @@
-/**
- * This work was created by participants in the DataONE project, and is
- * jointly copyrighted by participating institutions in DataONE. For 
- * more information on DataONE, see our web site at http://dataone.org.
- *
- *   Copyright ${year}
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and 
- * limitations under the License.
- * 
- * $Id$
- */
-
 package org.dataone.solr.extensions;
 
 import static org.junit.Assert.assertThat;
@@ -42,17 +20,18 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dataone.client.auth.CertificateManager;
+import org.dataone.cn.auth.JwtTokenGenerator;
 import org.dataone.cn.auth.X509CertificateGenerator;
-import org.dataone.cn.ldap.v1.NodeLdapPopulation;
-import org.dataone.cn.ldap.v1.SubjectLdapPopulation;
 import org.dataone.cn.servlet.http.BufferedServletResponseWrapper;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.web.mock.MockServlet;
 import org.dataone.cn.web.mock.MockWebApplicationContextLoader;
 import org.dataone.configuration.Settings;
 import org.dataone.solr.servlet.LogServiceSessionAuthorizationFilter;
+import org.dataone.solr.servlet.SessionAuthorizationFilterStrategyTest;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.core.io.FileSystemResourceLoader;
@@ -64,6 +43,7 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.mock.web.PassThroughFilterChain;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import uk.org.webcompere.systemstubs.rules.EnvironmentVariablesRule;
 
 /**
  * Unit test for simple App.
@@ -71,27 +51,16 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:/webapp/mockController-dispatcher.xml",
         "classpath:/webapp/mockController-beans.xml" }, loader = MockWebApplicationContextLoader.class)
-public class LogServiceSessionAuthorizationFilterTestUnit {
-    public static Log log = LogFactory.getLog(LogServiceSessionAuthorizationFilterTestUnit.class);
-    private NodeLdapPopulation cnLdapPopulation;
-    private SubjectLdapPopulation subjectLdapPopulation;
+public class LogServiceSessionAuthorizationFilterTest {
+    public static Log log = LogFactory.getLog(LogServiceSessionAuthorizationFilterTest.class);
     private X509CertificateGenerator x509CertificateGenerator;
     private String primarySubject = Settings.getConfiguration().getString(
             "testIdentity.primarySubject");
-    private String administratorToken = Settings.getConfiguration().getString(
-            "cn.solrAdministrator.token");
+    private String administratorToken = "testest";
 
-    // private NodeLdapPopulation cnLdapPopulation;
+    @Rule
+    public EnvironmentVariablesRule environmentVariablesRule2 = new EnvironmentVariablesRule();
 
-    @Resource
-    public void setCNLdapPopulation(NodeLdapPopulation ldapPopulation) {
-        this.cnLdapPopulation = ldapPopulation;
-    }
-
-    @Resource
-    public void setCNLdapPopulation(SubjectLdapPopulation subjectLdapPopulation) {
-        this.subjectLdapPopulation = subjectLdapPopulation;
-    }
 
     @Resource
     public void setX509CertificateGenerator(X509CertificateGenerator x509CertificateGenerator) {
@@ -100,14 +69,15 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
 
     @Before
     public void before() throws Exception {
-        cnLdapPopulation.populateTestCN();
-        subjectLdapPopulation.populateTestIdentities();
+        environmentVariablesRule2.set(
+            SessionAuthorizationFilterStrategyTest.ENV_NAME_CN_SOLR_ADMIN_TOKEN,
+            administratorToken);
     }
 
     @After
     public void after() throws Exception {
-        cnLdapPopulation.deletePopulatedNodes();
-        subjectLdapPopulation.deletePopulatedSubjects();
+        environmentVariablesRule2.set(
+            SessionAuthorizationFilterStrategyTest.ENV_NAME_CN_SOLR_ADMIN_TOKEN, null);
     }
 
     @Test
@@ -132,24 +102,15 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
     // no parameters should be set indicating public access only
     @Test
     public void testDoPublicFilter() throws FileNotFoundException {
-
         HashMap<String, String[]> params = new HashMap<String, String[]>();
-        BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params, null);
+        BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params, null,
+                                                                      null);
 
         // examine contents of the response
         String content = new String(responseWrapper.getBuffer());
         log.info(content);
         assertTrue("response is not empty", responseWrapper.getBufferSize() == 0);
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length == 0);
-
-        //        assertThat("response should contain NotAuthorized", content,
-        //                containsString("NotAuthorized"));
-
-        // assertTrue("response should be null", responseWrapper.getBufferSize()
-        // == 0);
-        // assertTrue("response should be 0 length",
-        // responseWrapper.getBuffer().toString());
-
     }
 
     // make certain that if someone tries to pass in authorization via
@@ -164,21 +125,12 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         params.put(ParameterKeys.IS_CN_ADMINISTRATOR, values);
         BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log?"
                 + ParameterKeys.AUTHORIZED_SUBJECTS + "=cn%3Dtesttest,dc%3Ddataone,dc%3Dorg",
-                params, null);
+                params, null, null);
         String content = new String(responseWrapper.getBuffer());
         log.info(content);
         // examine contents of the response
         assertTrue("response is not empty", responseWrapper.getBufferSize() == 0);
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length == 0);
-
-        //        assertThat("response should contain NotAuthorized", content,
-        //                containsString("NotAuthorized"));
-        // examine contents of the response
-        // assertTrue("response should be null", responseWrapper.getBufferSize()
-        // == 0);
-        // assertTrue("response should be 0 length",
-        // responseWrapper.getBuffer().length == 0);
-
     }
 
     // pass in a certificate that contains a subject that
@@ -192,15 +144,13 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         X509Certificate certificate[] = { CertificateManager.getInstance().loadCertificate() };
         HashMap<String, String[]> params = new HashMap<String, String[]>();
         BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params,
-                certificate);
+                certificate, null);
 
         // examine contents of the response
         assertTrue("response is not empty", responseWrapper.getBufferSize() > 0);
         assertTrue("response is greater than 0", responseWrapper.getBuffer().length > 0);
 
         String content = new String(responseWrapper.getBuffer());
-        //        assertThat("response should contain NotAuthorized", content,
-        //                containsString("NotAuthorized"));
         assertThat("response should contain " + primarySubject, content,
                 containsString(primarySubject));
     }
@@ -209,12 +159,12 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
     // only CNs have administrative rights to logging
     @Test
     public void testDoAdministrativeSubjectFilter() throws Exception {
-        x509CertificateGenerator.storeSelfSignedCertificate(Settings.getConfiguration().getString(
-                "testIdentity.adminSubjectCN"));
+        x509CertificateGenerator.storeSelfSignedCertificate(
+            Settings.getConfiguration().getString("testIdentity.adminSubjectCN"));
         X509Certificate certificate[] = { CertificateManager.getInstance().loadCertificate() };
         HashMap<String, String[]> params = new HashMap<String, String[]>();
         BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params,
-                certificate);
+                certificate, null);
 
         // examine contents of the response
         assertTrue("response is not empty", responseWrapper.getBufferSize() > 0);
@@ -227,9 +177,42 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
 
     }
 
+    /**
+     * Test the filter with a request having a jwt token
+     * @throws Exception
+     */
+    @Test
+    public void testDoTokenWithGroupsSubjectFilter() throws Exception {
+        String token =
+            JwtTokenGenerator.getInstance().generateToken(Settings.getConfiguration().getString(
+                "testIdentity.tokenSubject"), "John Smith");
+        HashMap<String, String[]> params = new HashMap<String, String[]>();
+        BufferedServletResponseWrapper responseWrapper = callDoFilter("/cn/v1/log", params,
+                                                                      null, token);
+        // examine the content of the response
+        assertTrue("response is not empty", responseWrapper.getBufferSize() > 0);
+        assertTrue("response is greater than 0", responseWrapper.getBuffer().length > 0);
+        String content = new String(responseWrapper.getBuffer());
+        assertThat(
+            "Response should contain the token subject " + Settings.getConfiguration().getString(
+                       "testIdentity.tokenSubject"), content,
+                   containsString(Settings.getConfiguration().getString(
+                       "testIdentity.tokenSubject")));
+        assertThat(
+            "Response should contain the group subject " + Settings.getConfiguration().getString(
+                "testIdentity.tokenGroup"), content,
+            containsString(Settings.getConfiguration().getString(
+                "testIdentity.tokenGroup")));
+        assertThat(
+            "Response should contain the equivalent subject " + Settings.getConfiguration().getString(
+                "testIdentity.tokenEquivalentSubject"), content,
+            containsString(Settings.getConfiguration().getString(
+                "testIdentity.tokenEquivalentSubject")));
+    }
+
     // ==========================================================================================================
     private BufferedServletResponseWrapper callDoFilter(String url, Map<String, String[]> params,
-            X509Certificate certificate[]) {
+            X509Certificate certificate[], String token) {
 
         ResourceLoader fsrl = new FileSystemResourceLoader();
         ServletContext sc = new MockServletContext("src/test/webapp", fsrl);
@@ -252,6 +235,9 @@ public class LogServiceSessionAuthorizationFilterTestUnit {
         }
         if (!params.isEmpty()) {
             request.addParameters(params);
+        }
+        if (token != null && !token.isBlank()) {
+            request.addHeader("Authorization", "Bearer " + token);
         }
         MockServlet testServlet = new MockServlet();
 
