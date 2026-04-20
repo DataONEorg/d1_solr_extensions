@@ -14,8 +14,6 @@
         <d1_common_java.version>2.3.0</d1_common_java.version>
         <d1_libclient_java.version>2.3.1</d1_libclient_java.version>
         <d1_cn_common.version>2.3.0</d1_cn_common.version>
-        <d1_identity_manager.version>2.3.2</d1_identity_manager.version>
-        <d1_cn_noderegistry.version>2.3.1</d1_cn_noderegistry.version>
         <d1_portal.version>2.3.3</d1_portal.version>
         <d1_test_resources.version>2.3.0</d1_test_resources.version>
         <spring.version>5.3.39</spring.version>
@@ -170,6 +168,14 @@
                 </configuration>
             </plugin>
         </plugins>
+        <extensions>
+            <!-- Enabling the use of SSH; see `<distributionManagement>` section -->
+            <extension>
+                <groupId>org.apache.maven.wagon</groupId>
+                <artifactId>wagon-ssh-external</artifactId>
+                <version>3.5.3</version>
+            </extension>
+        </extensions>
     </build>
     <licenses>
         <license>
@@ -328,18 +334,6 @@
         </dependency>
         <dependency>
             <groupId>org.dataone</groupId>
-            <artifactId>d1_identity_manager</artifactId>
-            <version>${d1_identity_manager.version}</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.dataone</groupId>
-            <artifactId>d1_cn_noderegistry</artifactId>
-            <version>${d1_cn_noderegistry.version}</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.dataone</groupId>
             <artifactId>d1_portal</artifactId>
             <version>${d1_portal.version}</version>
             <type>jar</type>
@@ -450,4 +444,15 @@
             <version>2.3.2</version>
         </dependency>
     </dependencies>
+    <!-- Config for mvn deploy to upload to repo. Also see `<build><extensions>` section         -->
+    <!-- Also requires authentication info in ~/.m2/settings.xml;                                -->
+    <!--   see: https://maven.apache.org/guides/mini/guide-deployment-security-settings.html     -->
+    <!--   ...but note pvt key location should be an absolute path (/home/myname/...), NOT ~/... -->
+    <distributionManagement>
+        <repository>
+            <id>dataone.org</id>
+            <name>DataONE Repository</name>
+            <url>scpexe://maven.dataone.org/var/www/maven</url>
+        </repository>
+    </distributionManagement>
 </project>
