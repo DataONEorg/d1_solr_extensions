@@ -10,7 +10,6 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.QueryResponseWriter;
 import org.apache.solr.response.SolrQueryResponse;
-import org.dataone.configuration.Settings;
 import org.dataone.exceptions.MarshallingException;
 import org.dataone.service.types.v1_1.QueryEngineDescription;
 import org.dataone.service.util.TypeMarshaller;
@@ -28,10 +27,6 @@ public abstract class QueryEngineDescriptionResponseWriter implements QueryRespo
     private String D1_XSLT = null;
     private String responseKey;
     private static Log logger = LogFactory.getLog(QueryEngineDescriptionResponseWriter.class);
-    private static final String STYLED_RESPONSE_PROP_NAME = "queryEngineDescriptionResponse.styled";
-    private static final boolean styledResponse =
-        Settings.getConfiguration().getBoolean(STYLED_RESPONSE_PROP_NAME, false);
-
 
     protected void setD1_XSLT(String D1_XSLT) {
         this.D1_XSLT = D1_XSLT;
@@ -52,16 +47,7 @@ public abstract class QueryEngineDescriptionResponseWriter implements QueryRespo
     private void writeQueryEngineDescription(QueryEngineDescription qed, Writer writer) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         try {
-            if (styledResponse) {
-                logger.debug("Since setting of " + STYLED_RESPONSE_PROP_NAME + " is true, it"
-                                 + " returns a styled response.");
-                TypeMarshaller.marshalTypeToOutputStream(qed, os, D1_XSLT);
-            } else {
-                logger.debug("Since setting of " + STYLED_RESPONSE_PROP_NAME + " is false, it"
-                                 + " returns an unstyled response.");
-                TypeMarshaller.marshalTypeToOutputStream(qed, os);
-            }
-
+            TypeMarshaller.marshalTypeToOutputStream(qed, os);
         } catch (MarshallingException jibxEx) {
             logger.error(jibxEx.getMessage(), jibxEx);
         } catch (IOException ioEx) {
