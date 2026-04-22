@@ -290,7 +290,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 // v2CnUrl has the /v2 appendix on the base url. So we use `startWith`
                 if (v2CnUrl == null || !v2CnUrl.startsWith(envCnUrl)) {
                     logger.warn("The current v2 CN url is " + v2CnUrl + " and it is different to "
-                                    + "the cn url from an evn variable. We need to reset it to "
+                                    + "the cn url from an env variable. We need to reset it to "
                                     + envCnUrl);
                     D1Client.setCN(envCnUrl);
                     logger.debug("The new v2 cn url is " + D1Client.getCN().getNodeBaseServiceUrl());
@@ -300,7 +300,7 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
                 // v1CnUrl has the /v1 appendix on the base url. So we use `startWith`
                 if (v1CnUrl == null || !v1CnUrl.startsWith(envCnUrl)) {
                     logger.warn("The current v1 CN url is " + v1CnUrl + " and it is different to "
-                                    + "the cn url from an evn variable. We need to reset it to "
+                                    + "the cn url from an env variable. We need to reset it to "
                                     + envCnUrl);
                     org.dataone.client.v1.itk.D1Client.setCN(envCnUrl);
                     logger.debug(
