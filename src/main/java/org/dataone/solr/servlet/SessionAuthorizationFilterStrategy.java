@@ -27,6 +27,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.dataone.client.v2.itk.D1Client;
 import org.dataone.cn.servlet.http.ParameterKeys;
 import org.dataone.cn.servlet.http.ProxyServletRequestWrapper;
 import org.dataone.configuration.Settings;
@@ -195,9 +196,11 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     /**
      * Set the cnNodeListUrl base on cnClientUrl
      */
-    public static void setCnNodeListUrl() {
+    protected static void setCnNodeListUrl() {
         if (cnNodeListUrl == null || cnNodeListUrl.isBlank()) {
-            getCnClientUrl();
+            if (cnClientUrl == null || cnClientUrl.isBlank()) {
+                getCnClientUrl();
+            }
             if (cnClientUrl.endsWith("/")) {
                 cnNodeListUrl = cnClientUrl + "v2/node";
             } else {
@@ -273,9 +276,41 @@ public abstract class SessionAuthorizationFilterStrategy implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain fc)
             throws IOException, ServletException {
-
         logger.debug("SessionAuthorizationFilterStrategy doFilter invoked by: "
                 + this.getClass().getName());
+        // Make sure CNs have the correct url from the env variable if it is set
+        String envCnUrl = System.getenv(ENV_NAME_D1_CN_URL);
+        if (envCnUrl != null && !envCnUrl.isBlank()) {
+            logger.debug(
+                "In SessionAuthorizationFilterStrategy.doFilter, The cn url value from the"
+                    + " env variable " + ENV_NAME_D1_CN_URL + " is " + envCnUrl);
+            Settings.getConfiguration().setProperty(SETTING_NAME_D1_CN_URL, envCnUrl);
+            try {
+                String v2CnUrl = D1Client.getCN().getNodeBaseServiceUrl();
+                // v2CnUrl has the /v2 appendix on the base url. So we use `startWith`
+                if (v2CnUrl == null || !v2CnUrl.startsWith(envCnUrl)) {
+                    logger.warn("The current v2 CN url is " + v2CnUrl + " and it is different to "
+                                    + "the cn url from an env variable. We need to reset it to "
+                                    + envCnUrl);
+                    D1Client.setCN(envCnUrl);
+                    logger.debug("The new v2 cn url is " + D1Client.getCN().getNodeBaseServiceUrl());
+                }
+                // d1_portal uses the v1 D1Client. So we need to check it as well
+                String v1CnUrl = org.dataone.client.v1.itk.D1Client.getCN().getNodeBaseServiceUrl();
+                // v1CnUrl has the /v1 appendix on the base url. So we use `startWith`
+                if (v1CnUrl == null || !v1CnUrl.startsWith(envCnUrl)) {
+                    logger.warn("The current v1 CN url is " + v1CnUrl + " and it is different to "
+                                    + "the cn url from an env variable. We need to reset it to "
+                                    + envCnUrl);
+                    org.dataone.client.v1.itk.D1Client.setCN(envCnUrl);
+                    logger.debug(
+                        "The new v1 cn url is " + org.dataone.client.v1.itk.D1Client.getCN()
+                            .getNodeBaseServiceUrl());
+                }
+            } catch (ServiceFailure | NotImplemented e) {
+                logger.warn("The CN url cannot be got since " + e.getMessage());
+            }
+        }
 
         try {
             if (request instanceof HttpServletRequest) {
